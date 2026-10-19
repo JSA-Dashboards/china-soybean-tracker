@@ -187,7 +187,7 @@ def normalize_graph_message(g):
 
 
 def fetch_messages(days=5, max_pages=20):
-    """New FAS flash-sale emails from the Outlook inbox, oldest first. Scans by date (the inbox
+    """New FAS flash-sale emails from the Outlook mailbox (any folder), oldest first. Scans by date (the inbox
     takes ~200 messages a day, so 'newest N' would miss the 8 a.m. release) and filters the
     sender/subject client-side."""
     import requests
@@ -196,7 +196,9 @@ def fetch_messages(days=5, max_pages=20):
     sender = env.get("FAS_SENDER_MATCH", "usda").lower()
     subject_match = env.get("FAS_SUBJECT_MATCH", "export sales").lower()
     since = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%dT%H:%M:%SZ")
-    url = f"https://graph.microsoft.com/v1.0/users/{env['GRAPH_INBOX_USER']}/mailFolders/inbox/messages"
+    # All folders, not just Inbox: a rule or a manual move (the ESR-091 release was in another
+    # folder on 2026-10-19) must not hide a release. The sender + subject filter keeps it to FAS.
+    url = f"https://graph.microsoft.com/v1.0/users/{env['GRAPH_INBOX_USER']}/messages"
     params = {"$filter": f"receivedDateTime ge {since}", "$orderby": "receivedDateTime desc", "$top": "100",
               "$select": "id,internetMessageId,subject,receivedDateTime,from,body"}
     found = []
