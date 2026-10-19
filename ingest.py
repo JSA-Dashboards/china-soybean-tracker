@@ -42,51 +42,73 @@ def _norm_dest(raw):
     return "unknown" if r.startswith("unknown") else r
 
 
+def _core(text):
+    """The release body only: after the last 'FAS-ESR-NNN' header (the .msg/HTML preview
+    repeats the text, and the first copy is truncated), before the legal boilerplate."""
+    flat = re.sub(r"\s+", " ", text)
+    marks = list(re.finditer(r"FAS[\s-]*ESR[\s-]*\d{2,3}", flat, re.I))
+    if marks:
+        flat = flat[marks[-1].start():]
+    cut = re.search(r"###|The U\.S\. Department of Agriculture is required", flat)
+    return flat[:cut.start()] if cut else flat
+
+
 def parse_text(text, received_iso, subject=""):
-    """Return {'clean': [...], 'review': [...], 'out_of_scope': [...]} for one email body."""
+    """Return {'clean': [...], 'review': [...], 'out_of_scope': [...]} for one email body.
+    FAS flash releases are a short list of items, each 'N metric tons of <commodity> for
+    delivery to <destination> during the <MY> marketing year', so the text is split at each
+    amount and every item is judged on its own."""
     esr_m = ESR_RE.search(subject + " " + text)
     esr = esr_m.group(1).zfill(3) if esr_m else ""
     out = {"clean": [], "review": [], "out_of_scope": []}
-    flat = re.sub(r"\s+", " ", text)
-    for sent in re.split(r"(?<=[.;])\s+(?=[A-Z])", flat):
-        amounts = AMOUNT_RE.findall(sent)
-        if not amounts:
+    core = _core(text)
+    risky = RISKY.search(core)  # switch/cancel wording anywhere taints every soybean item
+    starts = [m.start() for m in AMOUNT_RE.finditer(core)]
+    seen = set()
+    for i, s0 in enumerate(starts):
+        seg = core[s0: starts[i + 1] if i + 1 < len(starts) else len(core)]
+        end = re.search(r"marketing\s+year\.?", seg, re.I)
+        seg = (seg[:end.end()] if end else seg[:300]).strip()
+        if seg in seen:
             continue
-        com_m = COMMODITY_RE.search(sent)
+        seen.add(seg)
+        amt = AMOUNT_RE.match(seg)
+        mt = int(amt.group(1).replace(",", ""))
+        com_m = COMMODITY_RE.search(seg)
         commodity = com_m.group(1).strip().lower() if com_m else ""
-        if SOY_RE.search(sent) and not NONSOY_SOY_RE.search(commodity):
+        if SOY_RE.search(seg) and not NONSOY_SOY_RE.search(commodity):
             commodity = "soybeans"  # "soybeans previously reported ..." must not slip out of scope
         elif commodity and not NONSOY_RE.search(commodity):
             commodity = ""  # unfamiliar commodity text -> review, never silently dropped
-        dests = {_norm_dest(d) for d in DEST_RE.findall(sent) if not d.startswith(IGNORE_DEST)}
-        mys = {f"{a}/{b}" for a, b in MY_RE.findall(sent)}
-        base = {"date": received_iso[:10], "esr": esr, "excerpt": sent[:400]}
+        dests = {_norm_dest(d) for d in DEST_RE.findall(seg) if not d.startswith(IGNORE_DEST)}
+        mys = {f"{a}/{b}" for a, b in MY_RE.findall(seg)}
+        base = {"date": received_iso[:10], "esr": esr, "excerpt": seg[:400]}
         if commodity and commodity != "soybeans":
-            out["out_of_scope"].append({**base, "commodity": commodity.title(), "dest": ", ".join(sorted(dests)) or "—",
-                                        "mt": int(amounts[0].replace(",", ""))})
+            out["out_of_scope"].append({**base, "commodity": commodity.title(),
+                                        "dest": ", ".join(d.title() for d in sorted(dests)) or "\u2014", "mt": mt})
             continue
         reasons = []
         if not commodity:
             reasons.append("commodity not recognised")
-        if len(amounts) != 1:
-            reasons.append(f"{len(amounts)} amounts in one sentence")
-        if RISKY.search(sent):
-            reasons.append("switch / cancel / reduction wording")
+        if risky:
+            reasons.append("switch / cancel / reduction wording in the release")
         if dests not in ({"china"}, {"unknown"}):
             reasons.append(f"destination not exactly China or unknown ({', '.join(sorted(dests)) or 'none found'})")
         if mys != {MY_TARGET}:
             reasons.append(f"marketing year {', '.join(sorted(mys)) or 'not stated'} (need {MY_TARGET} only)")
-        mt = int(amounts[0].replace(",", ""))
         if reasons:
             out["review"].append({**base, "mt": mt, "dest": None, "reason": "; ".join(reasons)})
         else:
-            d = next(iter(dests))
-            out["clean"].append({**base, "mt": mt, "dest": d,
-                                 "reason": "" if esr else "no ESR number found — enter it on approval"})
+            out["clean"].append({**base, "mt": mt, "dest": next(iter(dests)),
+                                 "reason": "" if esr else "no ESR number found \u2014 enter it on approval"})
     return out
 
 
 # ---- mailbox --------------------------------------------------------------
+
+def html_to_text(h):
+    return unescape(re.sub(r"<[^>]+>", " ", re.sub(r"(?is)<(script|style).*?</>", " ", h)))
+
 
 def _body(msg):
     parts = [p for p in msg.walk() if p.get_content_maintype() == "text"] if msg.is_multipart() else [msg]
@@ -114,6 +136,7 @@ def _received_ct(msg):
 def fetch_messages(days=5):
     host, user, pw = os.environ["IMAP_HOST"], os.environ["IMAP_USER"], os.environ["IMAP_PASSWORD"]
     match = os.environ.get("FAS_SENDER_MATCH", "usda").lower()
+    subject_match = os.environ.get("FAS_SUBJECT_MATCH", "export sales").lower()
     box = imaplib.IMAP4_SSL(host)
     box.login(user, pw)
     box.select(os.environ.get("IMAP_FOLDER", "INBOX"), readonly=True)
@@ -122,7 +145,8 @@ def fetch_messages(days=5):
     for num in ids[0].split():
         _, parts = box.fetch(num, "(RFC822)")
         msg = email.message_from_bytes(parts[0][1])
-        if match not in str(msg.get("From", "")).lower():
+        subj = str(make_header(decode_header(msg.get("Subject", ""))))
+        if match not in str(msg.get("From", "")).lower() or subject_match not in subj.lower():
             continue
         yield {
             "id": str(msg.get("Message-ID", num)).strip(),
@@ -197,6 +221,13 @@ if __name__ == "__main__":
     elif cmd == "weekly":
         print(ingest_weekly())
     elif cmd == "parse-file":
+        if sys.argv[2].lower().endswith(".msg"):
+            import extract_msg  # pip install extract-msg (local use only)
+            m = extract_msg.Message(sys.argv[2])
+            body = m.body or html_to_text((m.htmlBody or b"").decode("utf-8", "replace"))
+            import json
+            print(json.dumps(parse_text(body, str(m.date)[:16].replace(" ", "T"), str(m.subject)), indent=2))
+            sys.exit(0)
         raw = open(sys.argv[2], "rb").read()
         msg = email.message_from_bytes(raw)
         body = _body(msg) if msg.get("Subject") else raw.decode("utf-8", errors="replace")
