@@ -140,3 +140,98 @@ def new_baseline(data, label, cutoff_iso, outstanding, exports, source=None):
     dropped = before - len(data["china_flash"])
     return log_entry(data, "New weekly ESR baseline",
                      f"{label} · outstanding {outstanding:,} + exports {exports:,} · {dropped} flash row(s) absorbed")
+
+
+# ---- admin workflow: inbox, intel -> confirmed, weekly report -------------
+
+import copy
+import hashlib
+
+
+def _pid(*parts):
+    return "p-" + hashlib.sha1("|".join(str(p) for p in parts).encode()).hexdigest()[:10]
+
+
+def add_pending(data, item):
+    """Queue an inbox item for admin review. Returns False if already queued."""
+    item.setdefault("id", _pid(item.get("source"), item.get("excerpt"), item.get("mt"), item.get("dest")))
+    queue = data.setdefault("pending", [])
+    if any(p["id"] == item["id"] for p in queue):
+        return False
+    queue.append(item)
+    return True
+
+
+def _pending(data, pid):
+    for p in data.get("pending", []):
+        if p["id"] == pid:
+            return p
+    raise ValueError(f"No pending item {pid}")
+
+
+def approve_pending(data, pid, dest, iso, esr, mt, note=""):
+    """Accept an inbox item. dest = 'china' (confirmed flash) or 'unknown'."""
+    p = _pending(data, pid)
+    data["pending"].remove(p)
+    note = f"{note} (from inbox)".strip()
+    if dest == "china":
+        return add_china_flash(data, iso, esr, mt, note)
+    if dest == "unknown":
+        return add_unknown(data, iso, esr, mt, note)
+    raise ValueError("dest must be 'china' or 'unknown'")
+
+
+def dismiss_pending(data, pid, reason):
+    p = _pending(data, pid)
+    data["pending"].remove(p)
+    return log_entry(data, "Inbox item dismissed", f"{p.get('date', '')} \xb7 {p.get('mt') or ''} MT \xb7 {reason}")
+
+
+def intel_confirm(data, n, iso, esr, mt, note=""):
+    """Move n unconfirmed intel cargoes to a confirmed China flash sale."""
+    if not 1 <= n <= data["intel"]["cargoes"]:
+        raise ValueError(f"Can clear 1\u2013{data['intel']['cargoes']} cargoes")
+    data["intel"]["cargoes"] -= n
+    return add_china_flash(data, iso, esr, mt, f"{note} (cleared {n} intel cargo(es))".strip())
+
+
+def intel_discard(data, n, reason):
+    if not 1 <= n <= data["intel"]["cargoes"]:
+        raise ValueError(f"Can clear 1\u2013{data['intel']['cargoes']} cargoes")
+    data["intel"]["cargoes"] -= n
+    return log_entry(data, "Trade intel cleared", f"{n} cargo(es) \xb7 {reason}")
+
+
+def unknown_review(data):
+    """Unknown-destination rows, tagged against the current weekly cutoff.
+    'covered' = dated on/before the cutoff, so the weekly China report may have
+    absorbed it; 'new' = after the cutoff."""
+    cutoff = data["baseline"]["cutoff"]
+    return [{**r, "status": "covered" if r["date"] <= cutoff else "new"}
+            for r in sorted(data["unknown"], key=lambda r: r["date"])]
+
+
+def preview_weekly(data, label, cutoff_iso, outstanding, exports):
+    """What applying a weekly ESR snapshot would change (no mutation)."""
+    new = copy.deepcopy(data)
+    new_baseline(new, label, cutoff_iso, outstanding, exports)
+    b, a = summarize(data), summarize(new)
+    return {
+        "confirmed_before": b["confirmed_mt"], "confirmed_after": a["confirmed_mt"],
+        "grand_before": b["grand_mt"], "grand_after": a["grand_mt"],
+        "absorbed": [r for r in data["china_flash"] if r["date"] <= cutoff_iso],
+        "unknown_candidates": [r for r in data["unknown"] if r["date"] <= cutoff_iso],
+    }
+
+
+def apply_weekly(data, label, cutoff_iso, outstanding, exports,
+                 unknown_to_remove=(), clear_intel=0, note=""):
+    """Apply a weekly snapshot (drops the flash rows it covers), then remove the
+    unknown rows and intel cargoes the admin ticked, so nothing is double counted."""
+    new_baseline(data, label, cutoff_iso, outstanding, exports)
+    for iso, mt in unknown_to_remove:
+        remove_unknown(data, iso, mt, note=note or f"absorbed/rebooked per {label} weekly report")
+    if clear_intel:
+        intel_discard(data, clear_intel, note or f"confirmed in {label} weekly report")
+    data.pop("pending_weekly", None)
+    return data

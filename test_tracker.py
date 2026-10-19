@@ -57,3 +57,51 @@ def test_edits_append_audit_log_with_totals():
     last = data["log"][-1]
     assert last["action"] == "Trade intel set" and last["intel"] == 360_000
     assert data["log"][-2]["confirmed"] == 12_714_328
+
+
+def _queued(data, dest="china", mt=150_000):
+    t.add_pending(data, {"kind": "flash", "source": "email:x", "excerpt": "e", "mt": mt, "dest": dest, "date": "2026-10-20", "esr": "093"})
+    return data["pending"][0]["id"]
+
+
+def test_approve_pending_adds_row_and_clears_queue():
+    data = copy.deepcopy(t.load())
+    pid = _queued(data)
+    t.approve_pending(data, pid, "china", "2026-10-20", "093", 150_000)
+    assert not data["pending"] and t.summarize(data)["confirmed_mt"] == 12_764_328
+    pid = _queued(data, "unknown", 90_000)
+    t.approve_pending(data, pid, "unknown", "2026-10-20", "093", 90_000)
+    assert t.summarize(data)["unknown_mt"] == 3_436_550
+
+
+def test_dismiss_pending_changes_nothing_but_log():
+    data = copy.deepcopy(t.load())
+    pid = _queued(data)
+    before = t.summarize(data)["grand_mt"]
+    t.dismiss_pending(data, pid, "not soybeans")
+    assert not data["pending"] and t.summarize(data)["grand_mt"] == before
+    assert data["log"][-1]["action"] == "Inbox item dismissed"
+
+
+def test_intel_confirm_moves_cargo_to_confirmed_flash():
+    data = copy.deepcopy(t.load())
+    before = t.summarize(data)
+    t.intel_confirm(data, 1, "2026-10-20", "093", 60_000)
+    after = t.summarize(data)
+    assert data["intel"]["cargoes"] == 4
+    assert after["confirmed_mt"] == before["confirmed_mt"] + 60_000
+    assert after["intel_mt"] == before["intel_mt"] - 60_000
+    assert after["grand_mt"] == before["grand_mt"]  # moved, not added
+
+
+def test_weekly_preview_and_apply_offsets_without_double_count():
+    data = copy.deepcopy(t.load())
+    pv = t.preview_weekly(data, "Wk 6 (Oct 8)", "2026-10-15", 9_000_000, 2_500_000)
+    assert [r["esr"] for r in pv["absorbed"]] == ["089", "090"]
+    assert pv["confirmed_after"] == 11_500_000 + 558_000 + 114_000
+    cands = [(r["date"], r["mt"]) for r in pv["unknown_candidates"] if r["date"] >= "2026-10-05"]
+    t.apply_weekly(data, "Wk 6 (Oct 8)", "2026-10-15", 9_000_000, 2_500_000, unknown_to_remove=cands, clear_intel=2)
+    s = t.summarize(data)
+    assert s["intel_mt"] == 180_000
+    assert all(r["date"] > "2026-10-15" for r in data["china_flash"])
+    assert (("2026-10-15", 283_450)) not in [(r["date"], r["mt"]) for r in data["unknown"]]

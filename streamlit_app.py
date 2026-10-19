@@ -4,6 +4,7 @@ from html import escape
 import pandas as pd
 import streamlit as st
 
+import admin
 import tracker_logic as t
 
 st.set_page_config(page_title="China Soybean Purchase Tracker", page_icon=":material/grain:", layout="wide")
@@ -260,7 +261,7 @@ def log_table(data):
 NUM = st.column_config.NumberColumn(format="localized")
 
 data = t.load()
-tab_snap, tab_in, tab_log = st.tabs(["Snapshot", "What’s included", "Change log"])
+tab_snap, tab_in, tab_log, tab_admin = st.tabs(["Snapshot", "What’s included", "Change log", "Admin"])
 
 with tab_snap:
     st.html(SNAP_JS.replace("__FN__", f"China Soybean Tracker {data['as_of']}"), unsafe_allow_javascript=True)
@@ -288,3 +289,6 @@ with tab_log:
         st.info("No changes logged yet.")
     else:
         st.dataframe(lt, hide_index=True, width="stretch")
+
+with tab_admin:
+    admin.render()
