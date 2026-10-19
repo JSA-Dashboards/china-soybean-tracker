@@ -30,13 +30,13 @@ FAS_API_KEY    = "..."              # optional: "Check ESR" button
 Public view needs none of these. Admin saves are commits; Cloud redeploys in ~1 minute.
 
 ## Droplet (not deployed yet)
-Env file (chmod 600): `IMAP_HOST IMAP_USER IMAP_PASSWORD [IMAP_FOLDER] [FAS_SENDER_MATCH=usda] FAS_API_KEY GITHUB_TOKEN`.
-Subscribe the dedicated mailbox at https://public.govdelivery.com/accounts/USDAFAS/subscriber/new (www.fas.usda.gov
-blocks scripts; the email route is the sanctioned one). Cron (check `CRON_TZ` support):
+`/opt/china-soybean-tracker` = git clone + `.venv` (`pip install requests`) + `.env` (chmod 600) with
+`IMAP_HOST IMAP_USER IMAP_PASSWORD [IMAP_FOLDER] [FAS_SENDER_MATCH=usda] [FAS_SUBJECT_MATCH="export sales"] FAS_API_KEY GITHUB_TOKEN`.
+Wrappers in `deploy/` (executable bit is committed). Droplet time is America/Chicago; FAS emails land ~8:02 CT.
 ```
-CRON_TZ=America/Chicago
-10 8,9,10 * * 1-5  cd /opt/china-soybean-tracker && set -a && . ./.env && set +a && python3 ingest.py flash
-45 7,9 * * 4,5     cd /opt/china-soybean-tracker && set -a && . ./.env && set +a && python3 ingest.py weekly
+10 8,9,10 * * 1-5  /opt/alerting/cron-alert "China soy flash ingest" "/opt/china-soybean-tracker/logs/*.log" /opt/china-soybean-tracker/deploy/run_flash.sh
+45 7,11 * * 1-5    /opt/alerting/cron-alert "China soy weekly ESR" "/opt/china-soybean-tracker/logs/*.log" /opt/china-soybean-tracker/deploy/run_weekly.sh
 ```
-Validate the parser on real emails first: `python ingest.py parse-file sample.eml` (prints result, writes nothing).
-The test emails in `test_ingest.py` are synthetic.
+Subscribe the mailbox at https://public.govdelivery.com/accounts/USDAFAS/subscriber/new (www.fas.usda.gov blocks scripts).
+Check the parser on any new release type: `python ingest.py parse-file sample.msg` (prints, writes nothing).
+Releases already in the tracker are skipped as duplicates; ambiguous ones land in the Inbox as *review*.

@@ -159,7 +159,7 @@ def fetch_messages(days=5):
 
 def ingest_flash():
     import store
-    summary = {"messages": 0, "queued": 0, "review": 0, "out_of_scope": 0}
+    summary = {"messages": 0, "queued": 0, "review": 0, "out_of_scope": 0, "duplicate": 0}
     msgs = list(fetch_messages())
 
     def apply(data):
@@ -169,7 +169,7 @@ def ingest_flash():
                 continue
             summary["messages"] += 1
             res = queue_result(data, m)
-            for k in ("queued", "review", "out_of_scope"):
+            for k in ("queued", "review", "out_of_scope", "duplicate"):
                 summary[k] += res[k]
             data["ingest_seen"].append(m["id"])
         data["ingest_seen"] = data["ingest_seen"][-500:]
@@ -181,9 +181,13 @@ def ingest_flash():
 
 def queue_result(data, m):
     res = parse_text(m["body"], m["received"], m["subject"])
-    n = {"queued": 0, "review": 0, "out_of_scope": 0}
+    n = {"queued": 0, "review": 0, "out_of_scope": 0, "duplicate": 0}
+    counted = {("china", f["esr"], f["mt"]) for f in data["china_flash"]} | {("unknown", u["esr"], u["mt"]) for u in data["unknown"]}
     for kind, items in (("flash", res["clean"]), ("review", res["review"])):
         for it in items:
+            if kind == "flash" and it["esr"] and (it["dest"], it["esr"], it["mt"]) in counted:
+                n["duplicate"] += 1  # already in the tracker (e.g. a mailbox that also received the old releases)
+                continue
             added = t.add_pending(data, {**it, "kind": kind, "source": f"email:{m['id']}",
                                          "subject": m["subject"], "received": m["received"]})
             n["queued" if kind == "flash" else "review"] += int(added)

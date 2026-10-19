@@ -126,3 +126,11 @@ def test_real_parses_match_the_published_tracker_rows():
     for esr in REAL:
         for c in _parse_real(esr)["clean"]:
             assert (c["esr"], c["mt"]) in (flash if c["dest"] == "china" else unk)
+
+
+def test_already_counted_release_is_not_queued_again():
+    data = copy.deepcopy(t.load())
+    date, title, body = REAL["090"]  # ESR-090 is already in the published tracker
+    m = {"id": "<old>", "subject": title, "received": "2026-10-15T08:02", "body": _real(date, "090", title, body)}
+    n = ig.queue_result(data, m)
+    assert n["duplicate"] == 2 and n["queued"] == 0 and not data.get("pending")
