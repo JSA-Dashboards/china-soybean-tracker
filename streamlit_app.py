@@ -1,6 +1,7 @@
 """China Soybean Purchase Tracker — progress toward China's 25 MMT/yr commitment."""
 from html import escape
 
+import pandas as pd
 import streamlit as st
 
 import tracker_logic as t
@@ -137,7 +138,7 @@ def build(data):
     )
 
     return f"""
-<div class="jt">
+<div class="jt" id="snap-tracker">
  <div class="hdr"><div><h1>China Soybean Purchase Tracker — {my} Marketing Year</h1>
   <div class="sub">U.S. Soybean Export Flash Sales &amp; Weekly Export Sales \xb7 USDA FAS \xb7 White House Fact Sheet \xb7 {as_of_txt}</div></div>
   <div class="brand">John Stewart<small>AND ASSOCIATES</small></div></div>
@@ -186,5 +187,104 @@ def build(data):
 """
 
 
+SNAP_JS = """
+<div style="display:flex;gap:6px;align-items:center;margin:2px 0 10px 0">
+  <button id="dlSNAP" style="font:600 13px system-ui,sans-serif;color:#fff;background:#2c3e27;border:none;border-radius:6px;padding:6px 12px;cursor:pointer">📥 Download PNG</button>
+  <button id="cpSNAP" style="font:600 13px system-ui,sans-serif;color:#2c3e27;background:transparent;border:1.5px solid #2c3e27;border-radius:6px;padding:6px 12px;cursor:pointer">📋 Copy image</button>
+  <span id="msgSNAP" style="font:12px system-ui,sans-serif;color:#666"></span>
+</div>
+<script>
+(function(){
+  const ID="snap-tracker", FN="__FN__";
+  function ensureH2C(){
+    if(window.html2canvas) return Promise.resolve();
+    if(window.__h2c) return window.__h2c;
+    window.__h2c=new Promise((res,rej)=>{
+      const s=document.createElement("script");
+      s.src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
+      s.onload=()=>res(); s.onerror=()=>rej(new Error("load failed"));
+      document.head.appendChild(s); setTimeout(()=>rej(new Error("timeout")),10000);
+    });
+    return window.__h2c;
+  }
+  async function shoot(){
+    await ensureH2C();
+    const el=document.getElementById(ID); if(!el) throw new Error("nothing to capture");
+    return await window.html2canvas(el,{scale:2,backgroundColor:"#ffffff",logging:false,useCORS:true});
+  }
+  const msgEl=document.getElementById("msgSNAP");
+  const msg=t=>{ if(msgEl){ msgEl.textContent=t; if(t) setTimeout(()=>{msgEl.textContent="";},2500);} };
+  document.getElementById("dlSNAP").onclick=async()=>{
+    msg("…"); try{ const c=await shoot(); const a=document.createElement("a");
+      a.download=FN+".png"; a.href=c.toDataURL("image/png"); a.click(); msg("✓ saved"); }
+    catch(e){ msg("⚠ "+e.message); }
+  };
+  // Promise-based ClipboardItem keeps the click's user gesture through html2canvas.
+  document.getElementById("cpSNAP").onclick=async()=>{
+    msg("…");
+    try{
+      await navigator.clipboard.write([new ClipboardItem({"image/png":(async()=>{
+        const c=await shoot();
+        return await new Promise(r=>c.toBlob(r,"image/png"));
+      })()})]);
+      msg("✓ copied");
+    }catch(e){ msg("⚠ "+(e.name||e.message)); }
+  };
+})();
+</script>
+"""
+
+
+def included_tables(data):
+    s = t.summarize(data)
+    base = data["baseline"]
+    conf = [{"Date": base["label"], "Source": base["source"], "MT": s["baseline_mt"],
+             "Running MT": s["baseline_mt"], "Note": f"Outstanding {base['outstanding_sales']:,} + exports {base['accumulated_exports']:,}"}]
+    conf += [{"Date": t.fmt_date(r["date"]), "Source": esr_ref(r), "MT": r["mt"], "Running MT": r["running"], "Note": r["note"]} for r in s["flash"]]
+    unk = [{"Date": t.fmt_date(r["date"]), "Source": esr_ref(r), "MT": r["mt"], "Running MT": r["running"], "Note": r["note"]} for r in s["unknown"]]
+    rem = [{"Date": t.fmt_date(r["date"]), "Source": esr_ref(r), "MT": r["mt"], "Note": r["note"]} for r in data["unknown_removed"]]
+    exc = [{"Date": t.fmt_date(r["date"]), "Source": f"FAS ESR-{r['esr']}-26", "Commodity": r["commodity"],
+            "Destination": r["destination"], "MT": r["mt"], "Reason": r["reason"]} for r in data["excluded"]]
+    return conf, unk, rem, exc
+
+
+def log_table(data):
+    rows = []
+    for r in reversed(data.get("log", [])):
+        rows.append({"When (CT)": r["ts"].replace("T", " ")[:16], "Change": r["action"], "Detail": r["detail"],
+                     "Confirmed": t.mmt(r["confirmed"]), "Unknown": t.mmt(r["unknown"]),
+                     "Intel": t.mmt(r["intel"]), "Grand total": t.mmt(r["grand"])})
+    return pd.DataFrame(rows)
+
+
+NUM = st.column_config.NumberColumn(format="localized")
+
 data = t.load()
-st.html(CSS + build(data))
+tab_snap, tab_in, tab_log = st.tabs(["Snapshot", "What’s included", "Change log"])
+
+with tab_snap:
+    st.html(SNAP_JS.replace("__FN__", f"China Soybean Tracker {data['as_of']}"), unsafe_allow_javascript=True)
+    st.html(CSS + build(data))
+
+with tab_in:
+    conf, unk, rem, exc = included_tables(data)
+    st.caption("Every row feeding the snapshot. Only soybeans count; corn and meal are excluded.")
+    st.subheader("China confirmed (USDA)")
+    st.dataframe(pd.DataFrame(conf), hide_index=True, width="stretch", column_config={"MT": NUM, "Running MT": NUM})
+    st.subheader(f"Unknown destinations ({len(unk)} sales)")
+    st.dataframe(pd.DataFrame(unk), hide_index=True, width="stretch", column_config={"MT": NUM, "Running MT": NUM})
+    st.subheader("Trade intel (unconfirmed)")
+    i = data["intel"]
+    st.write(f"{i['cargoes']} cargoes × {i['mt_per_cargo']:,} MT = **{i['cargoes'] * i['mt_per_cargo']:,} MT** · {i['week']}")
+    st.subheader("Removed from the unknown-destination log")
+    st.dataframe(pd.DataFrame(rem), hide_index=True, width="stretch", column_config={"MT": NUM})
+    st.subheader("Excluded as out of scope")
+    st.dataframe(pd.DataFrame(exc), hide_index=True, width="stretch", column_config={"MT": NUM})
+
+with tab_log:
+    st.caption("Every update made through update_tracker.py, newest first, with the totals (MMT) after each change.")
+    lt = log_table(data)
+    if lt.empty:
+        st.info("No changes logged yet.")
+    else:
+        st.dataframe(lt, hide_index=True, width="stretch")

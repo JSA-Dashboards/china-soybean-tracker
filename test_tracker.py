@@ -46,3 +46,14 @@ def test_remove_unknown():
     before = t.summarize(data)["unknown_mt"]
     t.remove_unknown(data, "2026-08-03", 136_150)
     assert t.summarize(data)["unknown_mt"] == before - 136_150
+
+
+def test_edits_append_audit_log_with_totals():
+    data = copy.deepcopy(t.load())
+    n = len(data["log"])
+    t.add_china_flash(data, "2026-10-20", "093", 100_000)
+    t.set_intel(data, 6)
+    assert len(data["log"]) == n + 2
+    last = data["log"][-1]
+    assert last["action"] == "Trade intel set" and last["intel"] == 360_000
+    assert data["log"][-2]["confirmed"] == 12_714_328
