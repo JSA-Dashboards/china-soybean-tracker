@@ -134,3 +134,15 @@ def test_already_counted_release_is_not_queued_again():
     m = {"id": "<old>", "subject": title, "received": "2026-10-15T08:02", "body": _real(date, "090", title, body)}
     n = ig.queue_result(data, m)
     assert n["duplicate"] == 2 and n["queued"] == 0 and not data.get("pending")
+
+
+def test_graph_message_normalised_and_parsed():
+    date, title, body = REAL["091"]
+    html = "<html><body><div>" + _real(date, "091", title, body).replace(" 558,000", "<br>558,000").replace(" 236,000", "<br>236,000") + "</div></body></html>"
+    g = {"id": "AAMk=", "internetMessageId": "<abc@govdelivery>", "subject": title,
+         "receivedDateTime": "2026-10-16T13:02:49Z", "body": {"contentType": "html", "content": html}}
+    m = ig.normalize_graph_message(g)
+    assert m["id"] == "<abc@govdelivery>" and m["received"].startswith("2026-10-16T08:02")  # 13:02Z = 08:02 CT
+    res = ig.parse_text(m["body"], m["received"], m["subject"])
+    assert [(c["esr"], c["mt"], c["dest"]) for c in res["clean"]] == [("091", 558000, "china"), ("091", 236000, "unknown")]
+    assert [o["commodity"] for o in res["out_of_scope"]] == ["Corn"]

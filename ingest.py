@@ -10,11 +10,15 @@ a clean candidate only if it is exactly one amount of *soybeans* to *China* or
 *unknown destinations* for the *2026/27* marketing year, with no switch / cancel /
 reduction wording. Everything else is queued as "review".
 
-Env (droplet): IMAP_HOST, IMAP_USER, IMAP_PASSWORD, [IMAP_FOLDER=INBOX],
-[FAS_SENDER_MATCH=usda], FAS_API_KEY, GITHUB_TOKEN (contents:write on the repo).
+Mail source: the FAS GovDelivery emails already land in kpostin@jpsi.com, so `flash` reads
+that Outlook inbox through Microsoft Graph with the delegated Mail.Read token cache, the same
+way the Southport poller does (vessel-lineup-dashboard). One-time login: deploy/setup_auth.py.
+
+Env (droplet .env): GRAPH_ENV_FILE=/opt/basis-tracker/.env (supplies AZURE_CLIENT_ID,
+GRAPH_TENANT_ID, GRAPH_INBOX_USER), FAS_API_KEY, GITHUB_TOKEN (contents:write on the repo),
+[GRAPH_TOKEN_CACHE=./.token_cache.json] [FAS_SENDER_MATCH=usda] [FAS_SUBJECT_MATCH="export sales"].
 """
 import email
-import imaplib
 import os
 import re
 import sys
@@ -133,28 +137,83 @@ def _received_ct(msg):
     return dt.isoformat(timespec="minutes")
 
 
-def fetch_messages(days=5):
-    host, user, pw = os.environ["IMAP_HOST"], os.environ["IMAP_USER"], os.environ["IMAP_PASSWORD"]
-    match = os.environ.get("FAS_SENDER_MATCH", "usda").lower()
-    subject_match = os.environ.get("FAS_SUBJECT_MATCH", "export sales").lower()
-    box = imaplib.IMAP4_SSL(host)
-    box.login(user, pw)
-    box.select(os.environ.get("IMAP_FOLDER", "INBOX"), readonly=True)
-    since = (datetime.now() - timedelta(days=days)).strftime("%d-%b-%Y")
-    _, ids = box.search(None, f'(SINCE "{since}")')
-    for num in ids[0].split():
-        _, parts = box.fetch(num, "(RFC822)")
-        msg = email.message_from_bytes(parts[0][1])
-        subj = str(make_header(decode_header(msg.get("Subject", ""))))
-        if match not in str(msg.get("From", "")).lower() or subject_match not in subj.lower():
-            continue
-        yield {
-            "id": str(msg.get("Message-ID", num)).strip(),
-            "subject": str(make_header(decode_header(msg.get("Subject", "")))),
-            "received": _received_ct(msg),
-            "body": _body(msg),
-        }
-    box.logout()
+def _env():
+    """os.environ, topped up from GRAPH_ENV_FILE (the basis tracker's .env) for missing keys."""
+    env = dict(os.environ)
+    path = env.get("GRAPH_ENV_FILE")
+    if path and os.path.isfile(path):
+        for raw in open(path, encoding="utf-8", errors="replace"):
+            line = raw.strip().lstrip("\ufeff")
+            if line.startswith("export "):
+                line = line[7:]
+            if line and not line.startswith("#") and "=" in line:
+                k, _, v = line.partition("=")
+                env.setdefault(k.strip(), v.strip().strip('"').strip("'"))
+    return env
+
+
+def _graph_token(env):
+    import msal
+    cache_path = env.get("GRAPH_TOKEN_CACHE") or os.path.join(os.path.dirname(os.path.abspath(__file__)), ".token_cache.json")
+    if not os.path.isfile(cache_path):
+        raise SystemExit(f"No token cache at {cache_path}: run deploy/setup_auth.py once interactively.")
+    cache = msal.SerializableTokenCache()
+    cache.deserialize(open(cache_path).read())
+    app = msal.PublicClientApplication(env["AZURE_CLIENT_ID"], authority="https://login.microsoftonline.com/" + env["GRAPH_TENANT_ID"],
+                                       token_cache=cache)
+    accounts = app.get_accounts()
+    res = app.acquire_token_silent(["Mail.Read"], account=accounts[0]) if accounts else None
+    if not res or "access_token" not in res:
+        raise SystemExit(f"Silent token refresh failed ({res}); re-run deploy/setup_auth.py.")
+    if cache.has_state_changed:
+        open(cache_path, "w").write(cache.serialize())
+    return res["access_token"]
+
+
+def normalize_graph_message(g):
+    """Graph message JSON -> the {id, subject, received, body} shape parse_text expects."""
+    body = g.get("body") or {}
+    text = body.get("content", "")
+    if str(body.get("contentType", "")).lower() == "html":
+        text = html_to_text(text)
+    rec = datetime.fromisoformat(g["receivedDateTime"].replace("Z", "+00:00"))
+    try:
+        from zoneinfo import ZoneInfo
+        rec = rec.astimezone(ZoneInfo("America/Chicago"))
+    except Exception:
+        pass
+    return {"id": g.get("internetMessageId") or g["id"], "subject": g.get("subject") or "",
+            "received": rec.isoformat(timespec="minutes"), "body": text}
+
+
+def fetch_messages(days=5, max_pages=20):
+    """New FAS flash-sale emails from the Outlook inbox, oldest first. Scans by date (the inbox
+    takes ~200 messages a day, so 'newest N' would miss the 8 a.m. release) and filters the
+    sender/subject client-side."""
+    import requests
+    env = _env()
+    token = _graph_token(env)
+    sender = env.get("FAS_SENDER_MATCH", "usda").lower()
+    subject_match = env.get("FAS_SUBJECT_MATCH", "export sales").lower()
+    since = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    url = f"https://graph.microsoft.com/v1.0/users/{env['GRAPH_INBOX_USER']}/mailFolders/inbox/messages"
+    params = {"$filter": f"receivedDateTime ge {since}", "$orderby": "receivedDateTime desc", "$top": "100",
+              "$select": "id,internetMessageId,subject,receivedDateTime,from,body"}
+    found = []
+    for _ in range(max_pages):
+        r = requests.get(url, headers={"Authorization": "Bearer " + token}, params=params, timeout=60)
+        r.raise_for_status()
+        data = r.json()
+        params = None
+        for g in data.get("value", []):
+            addr = ((g.get("from") or {}).get("emailAddress") or {})
+            who = f"{addr.get('name', '')} {addr.get('address', '')}".lower()
+            if sender in who and subject_match in (g.get("subject") or "").lower():
+                found.append(normalize_graph_message(g))
+        url = data.get("@odata.nextLink")
+        if not url:
+            break
+    return sorted(found, key=lambda m: m["received"])
 
 
 def ingest_flash():

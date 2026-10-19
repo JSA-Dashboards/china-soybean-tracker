@@ -30,13 +30,21 @@ FAS_API_KEY    = "..."              # optional: "Check ESR" button
 Public view needs none of these. Admin saves are commits; Cloud redeploys in ~1 minute.
 
 ## Droplet (not deployed yet)
-`/opt/china-soybean-tracker` = git clone + `.venv` (`pip install requests`) + `.env` (chmod 600) with
-`IMAP_HOST IMAP_USER IMAP_PASSWORD [IMAP_FOLDER] [FAS_SENDER_MATCH=usda] [FAS_SUBJECT_MATCH="export sales"] FAS_API_KEY GITHUB_TOKEN`.
-Wrappers in `deploy/` (executable bit is committed). Droplet time is America/Chicago; FAS emails land ~8:02 CT.
+The FAS GovDelivery emails already arrive in kpostin@jpsi.com, so `ingest.py flash` reads that Outlook inbox
+through Microsoft Graph (delegated Mail.Read, persisted token cache) exactly like the Southport poller in
+`vessel-lineup-dashboard`. No new mailbox, no IMAP.
+
+`/opt/china-soybean-tracker` = git clone + `.venv` (`pip install requests msal`) + `.env` (chmod 600):
+```
+GRAPH_ENV_FILE=/opt/basis-tracker/.env     # AZURE_CLIENT_ID, GRAPH_TENANT_ID, GRAPH_INBOX_USER
+FAS_API_KEY=...
+GITHUB_TOKEN=...                           # fine-grained, this repo only, Contents read+write
+```
+One-time login (device code, as kpostin@jpsi.com): `.venv/bin/python deploy/setup_auth.py`.
+Wrappers in `deploy/` (executable bit committed). Droplet time is America/Chicago; FAS emails land ~8:02 CT.
 ```
 10 8,9,10 * * 1-5  /opt/alerting/cron-alert "China soy flash ingest" "/opt/china-soybean-tracker/logs/*.log" /opt/china-soybean-tracker/deploy/run_flash.sh
 45 7,11 * * 1-5    /opt/alerting/cron-alert "China soy weekly ESR" "/opt/china-soybean-tracker/logs/*.log" /opt/china-soybean-tracker/deploy/run_weekly.sh
 ```
-Subscribe the mailbox at https://public.govdelivery.com/accounts/USDAFAS/subscriber/new (www.fas.usda.gov blocks scripts).
 Check the parser on any new release type: `python ingest.py parse-file sample.msg` (prints, writes nothing).
 Releases already in the tracker are skipped as duplicates; ambiguous ones land in the Inbox as *review*.
