@@ -216,8 +216,16 @@ def fetch_messages(days=5, max_pages=20):
     return sorted(found, key=lambda m: m["received"])
 
 
+def _require_remote(store):
+    """The droplet checkout must never be the database: without GITHUB_TOKEN, store.update would
+    quietly write the local file and dirty the clone. Refuse unless explicitly allowed (dev)."""
+    if not store.configured() and not os.environ.get("ALLOW_LOCAL_STORE"):
+        raise SystemExit("GITHUB_TOKEN not set: refusing to write the local data file (set ALLOW_LOCAL_STORE=1 for dev).")
+
+
 def ingest_flash():
     import store
+    _require_remote(store)
     summary = {"messages": 0, "queued": 0, "review": 0, "out_of_scope": 0, "duplicate": 0}
     msgs = list(fetch_messages())
 
@@ -262,6 +270,7 @@ def queue_result(data, m):
 def ingest_weekly():
     import esr
     import store
+    _require_remote(store)
     key = store.cfg("FAS_API_KEY")
     if not key:
         raise SystemExit("FAS_API_KEY not set")

@@ -146,3 +146,13 @@ def test_graph_message_normalised_and_parsed():
     res = ig.parse_text(m["body"], m["received"], m["subject"])
     assert [(c["esr"], c["mt"], c["dest"]) for c in res["clean"]] == [("091", 558000, "china"), ("091", 236000, "unknown")]
     assert [o["commodity"] for o in res["out_of_scope"]] == ["Corn"]
+
+
+def test_refuses_local_store_without_github_token(monkeypatch):
+    import pytest
+    import store
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+    monkeypatch.delenv("ALLOW_LOCAL_STORE", raising=False)
+    monkeypatch.setattr(store, "cfg", lambda name, default=None: default)
+    with pytest.raises(SystemExit):
+        ig._require_remote(store)
