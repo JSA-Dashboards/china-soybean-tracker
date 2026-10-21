@@ -201,5 +201,15 @@
       "intel": 300000,
       "grand": 16260878
     }
-  ]
+  ],
+  "pending_weekly": {
+    "label": "Wk 6 (Oct 8)",
+    "cutoff": "2026-10-08",
+    "outstanding": 8281000,
+    "exports": 2987587,
+    "total_commitment": 11268587,
+    "unknown_net_sales": -78700,
+    "unknown_outstanding": 5637850,
+    "fetched": "2026-10-21T12:11-05:00"
+  }
 }
