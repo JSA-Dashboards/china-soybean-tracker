@@ -1,0 +1,205 @@
+{
+  "as_of": "2026-10-19",
+  "marketing_year": "2026/27",
+  "baseline": {
+    "label": "Wk 5 (Oct 1)",
+    "cutoff": "2026-10-01",
+    "outstanding_sales": 8804000,
+    "accumulated_exports": 2338328,
+    "source": "USDA ESR Query System, Wk 5 (Oct 1)",
+    "note": "Note: 2–3 boats may be Aug/Sep straddles (25/26 reg., 26/27 shipment)."
+  },
+  "china_flash": [
+    {
+      "date": "2026-10-14",
+      "esr": "089",
+      "mt": 470000,
+      "note": ""
+    },
+    {
+      "date": "2026-10-15",
+      "esr": "090",
+      "mt": 330000,
+      "note": ""
+    },
+    {
+      "date": "2026-10-16",
+      "esr": "091",
+      "mt": 558000,
+      "note": "(Same release also reported 127,000 MT corn to Japan — out of scope for this soybean/China tracker, not included.)"
+    },
+    {
+      "date": "2026-10-19",
+      "esr": "092",
+      "mt": 114000,
+      "note": ""
+    }
+  ],
+  "unknown": [
+    {
+      "date": "2026-06-17",
+      "esr": "",
+      "mt": 312000,
+      "note": ""
+    },
+    {
+      "date": "2026-06-18",
+      "esr": "",
+      "mt": 120000,
+      "note": ""
+    },
+    {
+      "date": "2026-06-29",
+      "esr": "",
+      "mt": 136000,
+      "note": ""
+    },
+    {
+      "date": "2026-07-17",
+      "esr": "",
+      "mt": 110000,
+      "note": ""
+    },
+    {
+      "date": "2026-07-20",
+      "esr": "",
+      "mt": 110000,
+      "note": ""
+    },
+    {
+      "date": "2026-07-23",
+      "esr": "",
+      "mt": 126000,
+      "note": ""
+    },
+    {
+      "date": "2026-07-27",
+      "esr": "",
+      "mt": 126000,
+      "note": ""
+    },
+    {
+      "date": "2026-07-31",
+      "esr": "",
+      "mt": 252000,
+      "note": ""
+    },
+    {
+      "date": "2026-08-20",
+      "esr": "",
+      "mt": 150000,
+      "note": ""
+    },
+    {
+      "date": "2026-08-25",
+      "esr": "",
+      "mt": 132000,
+      "note": ""
+    },
+    {
+      "date": "2026-08-28",
+      "esr": "",
+      "mt": 226000,
+      "note": ""
+    },
+    {
+      "date": "2026-09-04",
+      "esr": "",
+      "mt": 250600,
+      "note": ""
+    },
+    {
+      "date": "2026-09-08",
+      "esr": "080",
+      "mt": 100000,
+      "note": "(Same release also reported 182,880 MT corn to Mexico — out of scope for this soybean/China tracker, not included.)"
+    },
+    {
+      "date": "2026-09-10",
+      "esr": "081",
+      "mt": 206500,
+      "note": ""
+    },
+    {
+      "date": "2026-09-30",
+      "esr": "086",
+      "mt": 105000,
+      "note": ""
+    },
+    {
+      "date": "2026-10-05",
+      "esr": "088",
+      "mt": 104000,
+      "note": "Not counted in confirmed total until rebooked by USDA. (Same release also reported 129,540 MT corn to Mexico — out of scope for this soybean/China tracker, not included.)"
+    },
+    {
+      "date": "2026-10-15",
+      "esr": "090",
+      "mt": 283450,
+      "note": ""
+    },
+    {
+      "date": "2026-10-16",
+      "esr": "091",
+      "mt": 236000,
+      "note": "(Same release also reported 127,000 MT corn to Japan — out of scope for this soybean/China tracker, not included.)"
+    },
+    {
+      "date": "2026-10-19",
+      "esr": "092",
+      "mt": 261000,
+      "note": ""
+    }
+  ],
+  "unknown_removed": [
+    {
+      "date": "2026-08-03",
+      "esr": "059",
+      "mt": 136150,
+      "note": "removed from the unknown-destination log per JSA desk update."
+    }
+  ],
+  "intel": {
+    "week": "Wk of Sep 28",
+    "cargoes": 5,
+    "mt_per_cargo": 60000
+  },
+  "sources": "USDA FAS Newsroom (fas.usda.gov/newsroom); FAS ESR 043-26 (Jun 18), 051-26 (Jul 13), 052-26 (Jul 17), 053-26 (Jul 20), 054-26 (Jul 23), 055-26 (Jul 27), 056-26 (Jul 30), 057-26 (Jul 31), 060-26 (Aug 4), 069-26 (Aug 18), 070-26 (Aug 20), 071-26 (Aug 21), 072-26 (Aug 25), 073-26 (Aug 26), 074-26 (Aug 28), 076-26 (Sep 1), 077-26 (Sep 2), 078-26 (Sep 3), 079-26 (Sep 4), 080-26 (Sep 8), 081-26 (Sep 10), 083-26 (Sep 18), 085-26 (Sep 24), 086-26 (Sep 30), 088-26 (Oct 5), 089-26 (Oct 14), 090-26 (Oct 15), 091-26 (Oct 16), 092-26 (Oct 19); USDA ESR Query System Wk 52 (Aug 27), Wk 1 (Sep 3), Wk 2 (Sep 10), Wk 3 (Sep 17), Wk 4 (Sep 24), Wk 5 (Oct 1); White House Fact Sheet Nov. 1, 2025. Unknown destination sales tracked separately until rebooked by USDA. Unconfirmed estimates are trade intelligence only. Corn and soybean-meal sales outside the soybean/China scope are excluded. 26/27 MY opened Sep 1, 2026.",
+  "excluded": [
+    {
+      "date": "2026-10-16",
+      "esr": "091",
+      "commodity": "Corn",
+      "destination": "Japan",
+      "mt": 127000,
+      "reason": "Out of scope (not soybeans)"
+    },
+    {
+      "date": "2026-10-05",
+      "esr": "088",
+      "commodity": "Corn",
+      "destination": "Mexico",
+      "mt": 129540,
+      "reason": "Out of scope (not soybeans)"
+    },
+    {
+      "date": "2026-09-08",
+      "esr": "080",
+      "commodity": "Corn",
+      "destination": "Mexico",
+      "mt": 182880,
+      "reason": "Out of scope (not soybeans)"
+    }
+  ],
+  "log": [
+    {
+      "ts": "2026-10-19T08:00",
+      "action": "Initial load",
+      "detail": "Rebuilt from the Oct 19, 2026 published tracker (Wk 5 baseline + ESR-089–092 flash, 19 unknown-destination sales, 5 intel cargoes)",
+      "confirmed": 12614328,
+      "unknown": 3346550,
+      "intel": 300000,
+      "grand": 16260878
+    }
+  ]
+}

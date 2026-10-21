@@ -38,6 +38,7 @@ SOY_RE = re.compile(r"soybeans?(?![a-z])(?!\s+(?:meal|oil|cake))", re.I)
 NONSOY_SOY_RE = re.compile(r"soy\w*\s+(?:meal|oil|cake)|soymeal|soyoil", re.I)
 NONSOY_RE = re.compile(r"corn|wheat|sorghum|barley|oats?|rice|cotton|meal|oil|cake|pork|beef|chicken|ethanol|ddgs", re.I)
 RISKY = re.compile(r"switch|cancel|reduc|chang(?:e|es|ed)\s+in\s+destination|rebook|revis|correct|previously", re.I)
+CHINA_ANY = re.compile(r"china|chinese|\bprc\b|p\.r\.c", re.I)  # any spelling: never auto-exclude
 IGNORE_DEST = ("U.S", "USDA", "Department", "Export", "Private")
 
 
@@ -88,8 +89,16 @@ def parse_text(text, received_iso, subject=""):
         mys = {f"{a}/{b}" for a, b in MY_RE.findall(seg)}
         base = {"date": received_iso[:10], "esr": esr, "excerpt": seg[:400]}
         if commodity and commodity != "soybeans":
-            out["out_of_scope"].append({**base, "commodity": commodity.title(),
+            out["out_of_scope"].append({**base, "commodity": commodity.title(), "reason": "Out of scope (not soybeans)",
                                         "dest": ", ".join(d.title() for d in sorted(dests)) or "\u2014", "mt": mt})
+            continue
+        # Soybeans to a clearly different named country (e.g. Spain): logged as out of scope, never queued.
+        # Anything that could be China (any 'china'/'prc' spelling), unknown destinations, or switch/cancel wording stays review.
+        if (commodity == "soybeans" and dests and not (dests & {"china", "unknown"})
+                and not CHINA_ANY.search(seg) and not risky):
+            names = ", ".join(d.title() for d in sorted(dests))
+            out["out_of_scope"].append({**base, "commodity": "Soybeans", "dest": names, "mt": mt,
+                                        "reason": f"Out of scope (soybeans to {names}, not China/unknown)"})
             continue
         reasons = []
         if not commodity:
@@ -262,7 +271,7 @@ def queue_result(data, m):
             n["queued" if kind == "flash" else "review"] += int(added)
     for it in res["out_of_scope"]:  # informational only: never touches totals
         row = {"date": it["date"], "esr": it["esr"], "commodity": it["commodity"], "destination": it["dest"],
-               "mt": it["mt"], "reason": "Out of scope (not soybeans)"}
+               "mt": it["mt"], "reason": it["reason"]}
         if row not in data.setdefault("excluded", []):
             data["excluded"].append(row)
             n["out_of_scope"] += 1

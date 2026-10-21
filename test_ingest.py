@@ -39,9 +39,9 @@ def test_switch_wording_goes_to_review():
     assert not r["clean"] and "switch" in r["review"][0]["reason"]
 
 
-def test_other_destination_review():
+def test_other_destination_is_out_of_scope():
     r = P("Private exporters reported export sales of 130,000 metric tons of soybeans for delivery to Egypt during the 2026/27 marketing year.")
-    assert not r["clean"] and r["review"]
+    assert not r["clean"] and not r["review"] and r["out_of_scope"][0]["dest"] == "Egypt"
 
 
 def test_corn_and_meal_out_of_scope_not_queued():
@@ -156,3 +156,31 @@ def test_refuses_local_store_without_github_token(monkeypatch):
     monkeypatch.setattr(store, "cfg", lambda name, default=None: default)
     with pytest.raises(SystemExit):
         ig._require_remote(store)
+
+
+def test_soybeans_to_another_named_country_is_out_of_scope_not_review():
+    r = P("Private exporters reported sales of 134,000 metric tons of soybeans for delivery to China during the 2026/2027 marketing year "
+          "165,000 metric tons of soybeans for delivery to Spain during the 2026/2027 marketing year")
+    assert [(c["mt"], c["dest"]) for c in r["clean"]] == [(134000, "china")]
+    assert not r["review"]
+    o = r["out_of_scope"][0]
+    assert (o["commodity"], o["dest"], o["mt"]) == ("Soybeans", "Spain", 165000) and "Spain" in o["reason"]
+
+
+def test_other_country_with_switch_wording_still_review():
+    r = P("Export sales of 165,000 metric tons of soybeans previously reported for delivery to unknown destinations were switched to Spain during the 2026/2027 marketing year.")
+    assert not r["clean"] and r["review"] and not r["out_of_scope"]
+
+
+def test_china_spelled_oddly_never_auto_excluded():
+    r = P("Private exporters reported sales of 90,000 metric tons of soybeans for delivery to Peoples Republic of China during the 2026/2027 marketing year.")
+    assert not r["out_of_scope"] and not r["clean"] and r["review"]
+
+
+def test_out_of_scope_rows_carry_their_own_reason():
+    data = copy.deepcopy(t.load())
+    m = {"id": "<s1>", "subject": "Export Sales to China and Spain", "received": D,
+         "body": "FAS-ESR-094-26 Export Sales to China and Spain Private exporters reported 165,000 metric tons of soybeans for delivery to Spain during the 2026/2027 marketing year"}
+    n = ig.queue_result(data, m)
+    assert n["out_of_scope"] == 1 and not data.get("pending")
+    assert data["excluded"][-1]["reason"].startswith("Out of scope (soybeans to Spain")

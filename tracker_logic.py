@@ -12,12 +12,12 @@ GOAL_MT = 25_000_000
 DATA_PATH = Path(__file__).with_name("tracker_data.json")
 
 
-def load(path=DATA_PATH):
-    return json.loads(Path(path).read_text(encoding="utf-8"))
+def load(path=None):
+    return json.loads(Path(path or DATA_PATH).read_text(encoding="utf-8"))
 
 
-def save(data, path=DATA_PATH):
-    Path(path).write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+def save(data, path=None):
+    Path(path or DATA_PATH).write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
 def _now():
