@@ -260,10 +260,32 @@ def log_table(data):
 
 NUM = st.column_config.NumberColumn(format="localized")
 
+def attention_banner(data):
+    """Banner above the snapshot (outside the PNG area): what is waiting in the Admin tab."""
+    a = t.attention(data)
+    lines = []
+    if a["clean"]:
+        items = "; ".join(f"ESR-{p.get('esr') or '?'} \u00b7 {p['mt']:,} MT \u2192 {str(p.get('dest') or '').title()}" for p in a["clean"])
+        lines.append(f"**{len(a['clean'])} new flash sale(s) waiting for approval:** {items}")
+    if a["review"]:
+        items = "; ".join(f"ESR-{p.get('esr') or '?'} \u00b7 {p['mt']:,} MT ({p.get('reason', 'ambiguous')})" for p in a["review"])
+        lines.append(f"**{len(a['review'])} release item(s) need a decision:** {items}")
+    if a["weekly"]:
+        lines.append(f"**ESR {a['weekly']['label']} is ready to apply** (Admin \u2192 Weekly report)")
+    if lines:
+        st.warning("\n\n".join(lines) + "\n\nNot counted in the totals below until you approve them in the **Admin** tab.", icon=":material/notifications:")
+
+
 data = t.load()
-tab_snap, tab_in, tab_log, tab_admin = st.tabs(["Snapshot", "What’s included", "Change log", "Admin"])
+view_only = st.query_params.get("view") == "1"  # client link: no Admin tab, no banner
+n_wait = t.attention_count(data)
+names = ["Snapshot", "What\u2019s included", "Change log"] + ([] if view_only else [f"Admin ({n_wait})" if n_wait else "Admin"])
+tabs = st.tabs(names)
+tab_snap, tab_in, tab_log = tabs[:3]
 
 with tab_snap:
+    if not view_only:
+        attention_banner(data)
     st.html(SNAP_JS.replace("__FN__", f"China Soybean Tracker {data['as_of']}"), unsafe_allow_javascript=True)
     st.html(CSS + build(data))
 
@@ -290,5 +312,6 @@ with tab_log:
     else:
         st.dataframe(lt, hide_index=True, width="stretch")
 
-with tab_admin:
-    admin.render()
+if not view_only:
+    with tabs[3]:
+        admin.render()

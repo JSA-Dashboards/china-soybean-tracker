@@ -235,3 +235,18 @@ def apply_weekly(data, label, cutoff_iso, outstanding, exports,
         intel_discard(data, clear_intel, note or f"confirmed in {label} weekly report")
     data.pop("pending_weekly", None)
     return data
+
+
+def attention(data):
+    """What is waiting for the admin: clean inbox items, items needing a decision, a ready weekly report."""
+    q = data.get("pending", [])
+    return {
+        "clean": [p for p in q if p.get("kind") == "flash"],
+        "review": [p for p in q if p.get("kind") != "flash"],
+        "weekly": data.get("pending_weekly"),
+    }
+
+
+def attention_count(data):
+    a = attention(data)
+    return len(a["clean"]) + len(a["review"]) + (1 if a["weekly"] else 0)

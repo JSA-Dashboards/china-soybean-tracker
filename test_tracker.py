@@ -105,3 +105,14 @@ def test_weekly_preview_and_apply_offsets_without_double_count():
     assert s["intel_mt"] == 180_000
     assert all(r["date"] > "2026-10-15" for r in data["china_flash"])
     assert (("2026-10-15", 283_450)) not in [(r["date"], r["mt"]) for r in data["unknown"]]
+
+
+def test_attention_counts_inbox_review_and_weekly():
+    data = copy.deepcopy(t.load())
+    assert t.attention_count(data) == 0
+    t.add_pending(data, {"kind": "flash", "source": "e1", "excerpt": "a", "mt": 1, "dest": "china", "esr": "093", "date": "2026-10-20"})
+    t.add_pending(data, {"kind": "review", "source": "e2", "excerpt": "b", "mt": 2, "dest": None, "esr": "094", "date": "2026-10-21", "reason": "x"})
+    data["pending_weekly"] = {"label": "Wk 6 (Oct 8)"}
+    a = t.attention(data)
+    assert (len(a["clean"]), len(a["review"]), bool(a["weekly"])) == (1, 1, True)
+    assert t.attention_count(data) == 3
