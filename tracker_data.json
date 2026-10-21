@@ -211,5 +211,51 @@
     "unknown_net_sales": -78700,
     "unknown_outstanding": 5637850,
     "fetched": "2026-10-21T12:11-05:00"
-  }
+  },
+  "ingest_seen": [
+    "<010001a15441418d-bfa516eb-0c35-48d2-a779-0b4ddd5083f4-000000@us-east-1.messagingfabric.com>",
+    "<010001a159677149-ca9fdb74-68c8-4a2c-9646-f8ff90996736-000000@us-east-1.messagingfabric.com>",
+    "<010001a15e8ea7c7-0e30d540-5895-42c9-a304-4081c548b86d-000000@us-east-1.messagingfabric.com>"
+  ],
+  "pending": [
+    {
+      "date": "2026-10-20",
+      "esr": "093",
+      "excerpt": "612,000 MT of soybeans for delivery to China during MY 2026/2027.",
+      "mt": 612000,
+      "dest": "china",
+      "reason": "",
+      "kind": "flash",
+      "source": "email:<010001a159677149-ca9fdb74-68c8-4a2c-9646-f8ff90996736-000000@us-east-1.messagingfabric.com>",
+      "subject": "Export Sales to China",
+      "received": "2026-10-20T08:02-05:00",
+      "id": "p-e700c97784"
+    },
+    {
+      "date": "2026-10-21",
+      "esr": "094",
+      "excerpt": "134,000 metric tons of soybeans for delivery to China during the 2026/2027 marketing year",
+      "mt": 134000,
+      "dest": "china",
+      "reason": "",
+      "kind": "flash",
+      "source": "email:<010001a15e8ea7c7-0e30d540-5895-42c9-a304-4081c548b86d-000000@us-east-1.messagingfabric.com>",
+      "subject": "Export Sales to China and Spain",
+      "received": "2026-10-21T08:02-05:00",
+      "id": "p-d49662cdc3"
+    },
+    {
+      "date": "2026-10-21",
+      "esr": "094",
+      "excerpt": "165,000 metric tons of soybeans for delivery to Spain during the 2026/2027 marketing year",
+      "mt": 165000,
+      "dest": null,
+      "reason": "destination not exactly China or unknown (spain)",
+      "kind": "review",
+      "source": "email:<010001a15e8ea7c7-0e30d540-5895-42c9-a304-4081c548b86d-000000@us-east-1.messagingfabric.com>",
+      "subject": "Export Sales to China and Spain",
+      "received": "2026-10-21T08:02-05:00",
+      "id": "p-712d60241f"
+    }
+  ]
 }
