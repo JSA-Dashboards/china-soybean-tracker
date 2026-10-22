@@ -61,3 +61,11 @@ Droplet `.env` also needs the `SNOWFLAKE_*` vars. First: `python flash_archive.p
 History import: `python flash_archive.py import-xlsx "USDA Flash.xlsx"` loads the desk's spreadsheet (2024-08 onward) as
 `SOURCE='history'` rows (needs `pip install openpyxl`). Its marketing years are derived from the sale date (flag
 `my_derived`). View `ALL_SALES` drops a history row once the FAS email for the same sale is in the table.
+
+Global Export Dashboard reader (run once as ACCOUNTADMIN; the daily job keeps the view grants via COPY GRANTS):
+```sql
+GRANT USAGE ON DATABASE JSA TO ROLE EXPORTER_ROLE;
+GRANT USAGE ON SCHEMA JSA.FLASH_SALES TO ROLE EXPORTER_ROLE;
+GRANT SELECT ON ALL VIEWS IN SCHEMA JSA.FLASH_SALES TO ROLE EXPORTER_ROLE;
+GRANT SELECT ON FUTURE VIEWS IN SCHEMA JSA.FLASH_SALES TO ROLE EXPORTER_ROLE;
+```

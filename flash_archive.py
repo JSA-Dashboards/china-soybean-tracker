@@ -163,25 +163,28 @@ def setup(conn):
     # ALL_SALES = every sale once: a spreadsheet-history row is dropped when the FAS email for the same sale
     # (date, commodity, tonnes, destination) is in the table, because the email is the better record.
     cur.execute(f"""
-        CREATE OR REPLACE VIEW ALL_SALES AS
+        CREATE OR REPLACE VIEW ALL_SALES COPY GRANTS AS
         SELECT * FROM {TABLE} s
         WHERE COALESCE(s.SOURCE, 'email') <> 'history'
            OR NOT EXISTS (SELECT 1 FROM {TABLE} e WHERE COALESCE(e.SOURCE, 'email') = 'email'
                           AND e.SALE_DATE = s.SALE_DATE AND e.COMMODITY = s.COMMODITY AND e.MT = s.MT
                           AND UPPER(e.DESTINATION) = UPPER(s.DESTINATION))""")
     cur.execute(f"""
-        CREATE OR REPLACE VIEW DAILY AS
+        CREATE OR REPLACE VIEW DAILY COPY GRANTS AS
         SELECT SALE_DATE, COMMODITY, DESTINATION, MARKETING_YEAR, SUM(MT) AS MT, COUNT(*) AS ITEMS,
                MAX(IFF(FLAGS <> '', 1, 0)) = 1 AS HAS_FLAGS
         FROM ALL_SALES GROUP BY 1, 2, 3, 4""")
-    for stmt in (f"GRANT USAGE ON SCHEMA JSA.{SCHEMA} TO ROLE JSA_ANALYST",
-                 f"GRANT SELECT ON ALL TABLES IN SCHEMA JSA.{SCHEMA} TO ROLE JSA_ANALYST",
-                 f"GRANT SELECT ON ALL VIEWS IN SCHEMA JSA.{SCHEMA} TO ROLE JSA_ANALYST"):
-        try:
-            cur.execute(stmt)
-        except Exception as e:  # role absent on this account: not fatal
-            print(f"  (grant skipped: {str(e).splitlines()[0]})")
-            break
+    # Read access for the analyst role and the Global Export Dashboard's role, where this job's role may grant it
+    # (otherwise an admin runs the GRANTs in the README). COPY GRANTS above keeps the view grants across the daily rebuild.
+    for role in ("JSA_ANALYST", "EXPORTER_ROLE"):
+        for stmt in (f"GRANT USAGE ON DATABASE JSA TO ROLE {role}", f"GRANT USAGE ON SCHEMA JSA.{SCHEMA} TO ROLE {role}",
+                     f"GRANT SELECT ON ALL VIEWS IN SCHEMA JSA.{SCHEMA} TO ROLE {role}",
+                     f"GRANT SELECT ON FUTURE VIEWS IN SCHEMA JSA.{SCHEMA} TO ROLE {role}"):
+            try:
+                cur.execute(stmt)
+            except Exception as e:  # role absent, or not ours to grant: not fatal
+                print(f"  (grant skipped for {role}: {str(e).splitlines()[0]})")
+                break
 
 
 def load(conn, rows):
