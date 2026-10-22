@@ -40,3 +40,38 @@ def test_repeated_preview_body_is_not_double_counted():
 def test_plain_sale_has_no_flags():
     rows = P("Export sales of 150,000 metric tons of sorghum for delivery to China during the 2026/27 marketing year.")
     assert rows[0]["flags"] == "" and rows[0]["commodity"] == "Sorghum"
+
+
+def test_fetch_light_lists_headers_then_fetches_only_fas_bodies(monkeypatch):
+    import requests
+    calls = []
+
+    class R:
+        status_code = 200
+        headers = {}
+
+        def __init__(self, j):
+            self.j = j
+
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return self.j
+
+    def fake_get(url, headers=None, params=None, timeout=None):
+        calls.append((url, params))
+        if url.endswith("/messages/FAS1"):
+            return R({"id": "FAS1", "internetMessageId": "<a>", "subject": "Export Sales to China",
+                      "receivedDateTime": "2026-10-20T13:02:00Z",
+                      "body": {"contentType": "text", "content": "150,000 metric tons of soybeans for delivery to China during the 2026/27 marketing year."}})
+        return R({"value": [
+            {"id": "FAS1", "subject": "Export Sales to China", "from": {"emailAddress": {"name": "USDA FAS", "address": "x@usda.gov"}}},
+            {"id": "OTH", "subject": "Lunch?", "from": {"emailAddress": {"name": "Bob", "address": "b@x.com"}}}]})
+
+    monkeypatch.setattr(requests, "get", fake_get)
+    monkeypatch.setattr(fa.ig, "_env", lambda: {"GRAPH_INBOX_USER": "me@x.com"})
+    monkeypatch.setattr(fa.ig, "_graph_token", lambda env: "tok")
+    msgs = fa.fetch_light(1, progress=False)
+    assert len(msgs) == 2 and all(m["id"] == "<a>" for m in msgs)  # one FAS hit per day-chunk, 2 chunks (days 1 and 0)
+    assert not any(url.endswith("/messages/OTH") for url, _ in calls)

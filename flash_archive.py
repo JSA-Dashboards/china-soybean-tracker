@@ -218,8 +218,56 @@ def load(conn, rows):
             pass
 
 
-def run(days, dry=False, max_pages=20):
-    msgs = ig.fetch_messages(days=days, max_pages=max_pages)
+def _get(requests, url, token, params=None, tries=5):
+    """GET with Graph throttling (429/503) honoured."""
+    import time
+    for i in range(tries):
+        r = requests.get(url, headers={"Authorization": "Bearer " + token}, params=params, timeout=60)
+        if r.status_code in (429, 503, 504):
+            time.sleep(min(int(r.headers.get("Retry-After", 5 * (i + 1))), 60))
+            continue
+        r.raise_for_status()
+        return r.json()
+    r.raise_for_status()
+
+
+def fetch_light(days, progress=True):
+    """FAS emails for the last `days` days, one day at a time. Lists headers only (no bodies) and fetches the
+    body just for sender/subject matches, so a long window is light on memory, Graph and the droplet."""
+    import requests
+    from datetime import timedelta
+    env = ig._env()
+    sender = env.get("FAS_SENDER_MATCH", "usda").lower()
+    subject_match = env.get("FAS_SUBJECT_MATCH", "export sales").lower()
+    base = f"https://graph.microsoft.com/v1.0/users/{env['GRAPH_INBOX_USER']}/messages"
+    today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    found = []
+    for back in range(days, -1, -1):
+        start, end = today - timedelta(days=back), today - timedelta(days=back - 1)
+        token = ig._graph_token(env)  # silent refresh each day: a long run outlives one token
+        params = {"$filter": f"receivedDateTime ge {start:%Y-%m-%dT%H:%M:%SZ} and receivedDateTime lt {end:%Y-%m-%dT%H:%M:%SZ}",
+                  "$top": "100", "$select": "id,internetMessageId,subject,receivedDateTime,from"}
+        url, n_all, n_hit = base, 0, 0
+        while url:
+            data = _get(requests, url, token, params)
+            params = None
+            for g in data.get("value", []):
+                n_all += 1
+                addr = ((g.get("from") or {}).get("emailAddress") or {})
+                who = f"{addr.get('name', '')} {addr.get('address', '')}".lower()
+                if sender in who and subject_match in (g.get("subject") or "").lower():
+                    full = _get(requests, f"{base}/{g['id']}", token,
+                                {"$select": "id,internetMessageId,subject,receivedDateTime,body"})
+                    found.append(ig.normalize_graph_message(full))
+                    n_hit += 1
+            url = data.get("@odata.nextLink")
+        if progress:
+            print(f"  {start:%Y-%m-%d}: {n_all} messages, {n_hit} FAS", flush=True)
+    return sorted(found, key=lambda m: m["received"])
+
+
+def run(days, dry=False, max_pages=None):
+    msgs = fetch_light(days)
     rows = rows_for_messages(msgs)
     print(f"{len(msgs)} FAS emails, {len(rows)} items")
     if dry:
@@ -245,7 +293,7 @@ if __name__ == "__main__":
     if cmd == "run":
         run(_arg("--days", 5), dry)
     elif cmd == "backfill":
-        run(_arg("--days", 365), dry, max_pages=_arg("--max-pages", 400))
+        run(_arg("--days", 365), dry)
     elif cmd == "setup":
         c = sf_connect()
         setup(c)
