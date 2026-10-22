@@ -4,6 +4,7 @@
   python flash_archive.py backfill --days N  same, wider window (mailbox is scanned by date, ~200 msgs/day)
   python flash_archive.py setup              create the schema/table/views only
   python flash_archive.py parse-file X       parse a saved .msg/.eml/.txt and print the items (no writes)
+  python flash_archive.py import-xlsx X      load the desk's 'USDA Flash.xlsx' history (SOURCE='history'); --dry-run previews
   python flash_archive.py --dry-run ...      with run/backfill: fetch + parse, print, no Snowflake
 
 Separate from the China tracker's review-first Inbox: that decides what COUNTS toward the 25 MMT; this is a
@@ -155,13 +156,24 @@ def setup(conn):
             EXCERPT        VARCHAR,
             SUBJECT        VARCHAR,
             LOADED_AT      TIMESTAMP_NTZ,
+            SOURCE         VARCHAR,                -- 'email' (parsed from FAS) or 'history' (desk spreadsheet)
             PRIMARY KEY (MESSAGE_ID, ITEM_IDX)
         )""")
+    cur.execute(f"ALTER TABLE {TABLE} ADD COLUMN IF NOT EXISTS SOURCE VARCHAR")
+    # ALL_SALES = every sale once: a spreadsheet-history row is dropped when the FAS email for the same sale
+    # (date, commodity, tonnes, destination) is in the table, because the email is the better record.
+    cur.execute(f"""
+        CREATE OR REPLACE VIEW ALL_SALES AS
+        SELECT * FROM {TABLE} s
+        WHERE COALESCE(s.SOURCE, 'email') <> 'history'
+           OR NOT EXISTS (SELECT 1 FROM {TABLE} e WHERE COALESCE(e.SOURCE, 'email') = 'email'
+                          AND e.SALE_DATE = s.SALE_DATE AND e.COMMODITY = s.COMMODITY AND e.MT = s.MT
+                          AND UPPER(e.DESTINATION) = UPPER(s.DESTINATION))""")
     cur.execute(f"""
         CREATE OR REPLACE VIEW DAILY AS
         SELECT SALE_DATE, COMMODITY, DESTINATION, MARKETING_YEAR, SUM(MT) AS MT, COUNT(*) AS ITEMS,
                MAX(IFF(FLAGS <> '', 1, 0)) = 1 AS HAS_FLAGS
-        FROM {TABLE} GROUP BY 1, 2, 3, 4""")
+        FROM ALL_SALES GROUP BY 1, 2, 3, 4""")
     for stmt in (f"GRANT USAGE ON SCHEMA JSA.{SCHEMA} TO ROLE JSA_ANALYST",
                  f"GRANT SELECT ON ALL TABLES IN SCHEMA JSA.{SCHEMA} TO ROLE JSA_ANALYST",
                  f"GRANT SELECT ON ALL VIEWS IN SCHEMA JSA.{SCHEMA} TO ROLE JSA_ANALYST"):
@@ -195,18 +207,19 @@ def load(conn, rows):
                        TO_DATE(V:sale_date::VARCHAR) AS SALE_DATE, V:received::VARCHAR AS RECEIVED,
                        V:esr::VARCHAR AS ESR, V:commodity::VARCHAR AS COMMODITY, V:mt::NUMBER AS MT,
                        V:destination::VARCHAR AS DESTINATION, V:marketing_year::VARCHAR AS MARKETING_YEAR,
-                       V:flags::VARCHAR AS FLAGS, V:excerpt::VARCHAR AS EXCERPT, V:subject::VARCHAR AS SUBJECT
+                       V:flags::VARCHAR AS FLAGS, V:excerpt::VARCHAR AS EXCERPT, V:subject::VARCHAR AS SUBJECT,
+                       COALESCE(V:source::VARCHAR, 'email') AS SOURCE
                 FROM _FLASH_RAW
                 QUALIFY ROW_NUMBER() OVER (PARTITION BY MESSAGE_ID, ITEM_IDX ORDER BY RECEIVED DESC) = 1
             ) s ON t.MESSAGE_ID = s.MESSAGE_ID AND t.ITEM_IDX = s.ITEM_IDX
             WHEN MATCHED THEN UPDATE SET t.SALE_DATE = s.SALE_DATE, t.RECEIVED = s.RECEIVED, t.ESR = s.ESR,
                 t.COMMODITY = s.COMMODITY, t.MT = s.MT, t.DESTINATION = s.DESTINATION,
                 t.MARKETING_YEAR = s.MARKETING_YEAR, t.FLAGS = s.FLAGS, t.EXCERPT = s.EXCERPT,
-                t.SUBJECT = s.SUBJECT, t.LOADED_AT = '{loaded_at}'
+                t.SUBJECT = s.SUBJECT, t.SOURCE = s.SOURCE, t.LOADED_AT = '{loaded_at}'
             WHEN NOT MATCHED THEN INSERT (MESSAGE_ID, ITEM_IDX, SALE_DATE, RECEIVED, ESR, COMMODITY, MT, DESTINATION,
-                MARKETING_YEAR, FLAGS, EXCERPT, SUBJECT, LOADED_AT)
+                MARKETING_YEAR, FLAGS, EXCERPT, SUBJECT, SOURCE, LOADED_AT)
             VALUES (s.MESSAGE_ID, s.ITEM_IDX, s.SALE_DATE, s.RECEIVED, s.ESR, s.COMMODITY, s.MT, s.DESTINATION,
-                s.MARKETING_YEAR, s.FLAGS, s.EXCERPT, s.SUBJECT, '{loaded_at}')""")
+                s.MARKETING_YEAR, s.FLAGS, s.EXCERPT, s.SUBJECT, s.SOURCE, '{loaded_at}')""")
         ins, upd = cur.fetchone()[:2]
         conn.commit()
         print(f"  {len(rows)} items parsed, {ins} inserted, {upd} updated")
@@ -283,6 +296,82 @@ def run(days, dry=False, max_pages=None):
         conn.close()
 
 
+# ---------------------------------------------------------------- desk spreadsheet history
+XLSX_COMMODITIES = ["Corn", "Soybeans", "Soybean Meal", "Soybean Oil", "Wheat", "Sorghum"]
+XLSX_COUNTRIES = {"s. korea": "South Korea", "s.korea": "South Korea", "columbia": "Colombia", "phillipines": "Philippines",
+                  "span": "Spain", "hrs nigeria": "Nigeria", "unknown": "Unknown Destinations"}
+MY_START_MONTH = {"Wheat": 6, "Soybean Meal": 10, "Soybean Oil": 10}  # every other commodity starts Sep 1
+
+
+def marketing_year_for(commodity, d):
+    """USDA marketing year a sale on date d falls in (Jun 1 wheat, Oct 1 meal / oil, Sep 1 the rest)."""
+    y = d.year if d.month >= MY_START_MONTH.get(commodity, 9) else d.year - 1
+    return f"{y}/{str(y + 1)[2:]}"
+
+
+def parse_xlsx(path):
+    """Items from the desk's 'USDA Flash.xlsx' Sheet1: three side-by-side blocks, each a Date column then
+    Tonnage/Origin pairs for corn, soybeans, meal, oil, wheat, sorghum. Block 1 is the current marketing year, blocks
+    2-3 are NEW CROP (the next year). The sheet has no marketing year, so it is derived from the sale date and flagged
+    my_derived. A stray (date, tonnage, origin) triple or bare (tonnage, origin) pair typed into the wrong cells is read
+    as another sale of that row's commodity (flag sheet_shift); an 'xxx-cxl' origin is a cancellation."""
+    import datetime as dt
+    import openpyxl
+    wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
+    data = list(wb["Sheet1"].iter_rows(values_only=True))[3:]
+    out, seen = [], set()
+    for ri, r in enumerate(data, start=4):
+        r = list(r) + [None] * (45 - len(r))
+        for bi, a in enumerate((0, 14, 28)):
+            if not isinstance(r[a], dt.datetime):
+                continue
+            row_date, last_com, skip = r[a].date(), None, set()
+            for k in range(6):
+                c = a + 1 + 2 * k
+                if c in skip:
+                    continue
+                t, o, flags, d = r[c], r[c + 1], [], row_date
+                com = XLSX_COMMODITIES[k]
+                if isinstance(t, dt.datetime) and isinstance(o, (int, float)) and isinstance(r[c + 2], str):
+                    d, t, o, com = t.date(), o, r[c + 2], last_com  # stray triple
+                    skip |= {c + 1, c + 2}
+                    flags.append("sheet_shift")
+                elif t is None and isinstance(o, (int, float)) and isinstance(r[c + 2], str):
+                    t, o, com = o, r[c + 2], last_com  # stray bare pair
+                    skip |= {c + 1, c + 2}
+                    flags.append("sheet_shift")
+                if not isinstance(t, (int, float)) or com is None:
+                    continue
+                if "sheet_shift" not in flags:
+                    last_com = com
+                dest = str(o or "").strip()
+                if dest.lower().endswith("-cxl"):
+                    flags.append("cancel")
+                    dest = dest[:-4]
+                dest = XLSX_COUNTRIES.get(dest.lower(), dest)
+                my = marketing_year_for(com, d)
+                if bi > 0:  # NEW CROP block = the year after the one the sale date falls in
+                    my = f"{int(my[:4]) + 1}/{str(int(my[:4]) + 2)[2:]}"
+                key = (d, com, int(t), dest, my)
+                if key in seen:  # block 3 repeats a block 2 row
+                    continue
+                seen.add(key)
+                out.append({
+                    "message_id": f"xlsx:USDA Flash:{len(out):05d}", "item_idx": 0, "sale_date": d.isoformat(),
+                    "received": "", "esr": "", "commodity": com, "mt": int(t), "destination": dest, "marketing_year": my,
+                    "flags": ",".join(flags + ["my_derived"]), "subject": "USDA Flash.xlsx (desk history)", "source": "history",
+                    "excerpt": f"Spreadsheet row {ri}: {int(t):,} MT {com} to {o}" + (" (NEW CROP block)" if bi else ""),
+                })
+    # Flash sales are never for a year beyond the one current at the latest sale in the sheet, so cap the NEW CROP
+    # guess there (a Jun-30-2026 wheat or Oct-2-2026 corn entry would otherwise read 2027/28).
+    last = max(dt.date.fromisoformat(r["sale_date"]) for r in out)
+    for r in out:
+        cap = marketing_year_for(r["commodity"], last)
+        if r["marketing_year"] > cap:
+            r["marketing_year"] = cap
+    return out
+
+
 def _arg(name, default):
     return int(sys.argv[sys.argv.index(name) + 1]) if name in sys.argv else default
 
@@ -294,6 +383,16 @@ if __name__ == "__main__":
         run(_arg("--days", 5), dry)
     elif cmd == "backfill":
         run(_arg("--days", 365), dry)
+    elif cmd == "import-xlsx":
+        rows = parse_xlsx(sys.argv[2])
+        print(f"{len(rows)} items, {min(r['sale_date'] for r in rows)} .. {max(r['sale_date'] for r in rows)}")
+        if not dry:
+            c = sf_connect()
+            try:
+                setup(c)
+                load(c, rows)
+            finally:
+                c.close()
     elif cmd == "setup":
         c = sf_connect()
         setup(c)

@@ -75,3 +75,11 @@ def test_fetch_light_lists_headers_then_fetches_only_fas_bodies(monkeypatch):
     msgs = fa.fetch_light(1, progress=False)
     assert len(msgs) == 2 and all(m["id"] == "<a>" for m in msgs)  # one FAS hit per day-chunk, 2 chunks (days 1 and 0)
     assert not any(url.endswith("/messages/OTH") for url, _ in calls)
+
+
+def test_marketing_year_start_months():
+    import datetime as dt
+    assert fa.marketing_year_for("Soybeans", dt.date(2026, 8, 31)) == "2025/26"
+    assert fa.marketing_year_for("Soybeans", dt.date(2026, 9, 1)) == "2026/27"
+    assert fa.marketing_year_for("Wheat", dt.date(2026, 6, 1)) == "2026/27"
+    assert fa.marketing_year_for("Soybean Oil", dt.date(2024, 9, 27)) == "2023/24"

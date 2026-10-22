@@ -58,3 +58,6 @@ Droplet `.env` also needs the `SNOWFLAKE_*` vars. First: `python flash_archive.p
 ```
 15 8,9,10 * * 1-5  /opt/alerting/cron-alert "Flash sale archive" "/opt/china-soybean-tracker/logs/*.log" /opt/china-soybean-tracker/deploy/run_flash_archive.sh
 ```
+History import: `python flash_archive.py import-xlsx "USDA Flash.xlsx"` loads the desk's spreadsheet (2024-08 onward) as
+`SOURCE='history'` rows (needs `pip install openpyxl`). Its marketing years are derived from the sale date (flag
+`my_derived`). View `ALL_SALES` drops a history row once the FAS email for the same sale is in the table.
