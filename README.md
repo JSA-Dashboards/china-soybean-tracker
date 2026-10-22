@@ -48,3 +48,13 @@ Wrappers in `deploy/` (executable bit committed). Droplet time is America/Chicag
 ```
 Check the parser on any new release type: `python ingest.py parse-file sample.msg` (prints, writes nothing).
 Releases already in the tracker are skipped as duplicates; ambiguous ones land in the Inbox as *review*.
+
+## Flash-sale archive (all commodities)
+`flash_archive.py` records every USDA daily flash sale (corn, wheat, meal, oil, sorghum ..., any destination or
+marketing year) one row per item in Snowflake `JSA.FLASH_SALES.SALES` (view `DAILY`). Switches / cancellations
+keep their row with a `FLAGS` value. Independent of the review-first China Inbox; never touches `tracker_data.json`.
+Droplet `.env` also needs the `SNOWFLAKE_*` vars. First: `python flash_archive.py setup`, then
+`python flash_archive.py backfill --days 365 --dry-run`, then without `--dry-run`. Cron (after the flash line):
+```
+15 8,9,10 * * 1-5  /opt/alerting/cron-alert "Flash sale archive" "/opt/china-soybean-tracker/logs/*.log" /opt/china-soybean-tracker/deploy/run_flash_archive.sh
+```
