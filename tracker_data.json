@@ -203,14 +203,14 @@
     }
   ],
   "pending_weekly": {
-    "label": "Wk 6 (Oct 8)",
-    "cutoff": "2026-10-08",
-    "outstanding": 8281000,
-    "exports": 2987587,
-    "total_commitment": 11268587,
-    "unknown_net_sales": -78700,
-    "unknown_outstanding": 5637850,
-    "fetched": "2026-10-21T12:11-05:00"
+    "label": "Wk 7 (Oct 15)",
+    "cutoff": "2026-10-15",
+    "outstanding": 9126000,
+    "exports": 4321228,
+    "total_commitment": 13447228,
+    "unknown_net_sales": 23250,
+    "unknown_outstanding": 5661100,
+    "fetched": "2026-10-22T07:45-05:00"
   },
   "ingest_seen": [
     "<010001a15441418d-bfa516eb-0c35-48d2-a779-0b4ddd5083f4-000000@us-east-1.messagingfabric.com>",
