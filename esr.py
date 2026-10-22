@@ -46,3 +46,14 @@ def latest_snapshot(api_key, marketing_year_end=2027):
         "unknown_net_sales": int(unk["currentMYNetSales"]) if unk else None,
         "unknown_outstanding": int(unk["outstandingSales"]) if unk else None,
     }
+
+
+def unknown_weeks(api_key, marketing_year_end=2027):
+    """Weekly soybean sales to UNKNOWN destinations: [{week, label, net_sales, outstanding}].
+    A negative net_sales week means sales were rebooked out of unknown to a named destination."""
+    out = []
+    for r in fetch_weeks(api_key, UNKNOWN, marketing_year_end):
+        we = r["weekEndingDate"][:10]
+        out.append({"week": we, "label": week_label(we, marketing_year_end),
+                    "net_sales": int(r["currentMYNetSales"]), "outstanding": int(r["outstandingSales"])})
+    return out

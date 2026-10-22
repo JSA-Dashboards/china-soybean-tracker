@@ -130,21 +130,84 @@ def _weekly(data):
                 f"Admin: apply weekly report {label}")
 
 
+REASONS = [
+    "Rebooked to China (confirmed in the weekly ESR report)",
+    "Rebooked to another destination (weekly ESR report)",
+    "Absorbed by the weekly ESR report",
+    "Duplicate entry",
+    "Entered in error",
+    "Other (type below)",
+]
+
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def _esr_unknown(key):
+    import esr
+    return esr.unknown_weeks(key)
+
+
 def _unknown(data):
     rows = t.unknown_review(data)
-    st.caption("Rows dated after the weekly cutoff are **new**; rows on/before it are **covered** by the weekly China report and "
-               "may already be counted there. Remove a row only when you've confirmed it was rebooked to China, or is otherwise wrong.")
+    base = data["baseline"]
+    st.caption(f"**{len(rows)} unknown-destination sales** logged, {t.mmt(sum(r['mt'] for r in rows))} MMT. Rows dated after the "
+               f"{base['label']} cutoff ({t.fmt_date(base['cutoff'])}) are **new**; rows on/before it are **covered** by the weekly China "
+               "report and may already be counted there. Remove a row only when it was rebooked, absorbed, or is wrong.")
+
+    key = store.cfg("FAS_API_KEY")
+    with st.expander("USDA weekly unknown-destination sales (a negative week = sales rebooked out of unknown)"):
+        if not key:
+            st.caption("Add FAS_API_KEY to the app secrets to show the ESR weekly figures here.")
+        else:
+            try:
+                wk = _esr_unknown(key)
+                st.dataframe(pd.DataFrame([{"Week": w["label"], "Net sales MT": w["net_sales"], "Outstanding MT": w["outstanding"]} for w in wk]),
+                             hide_index=True, width="stretch",
+                             column_config={"Net sales MT": st.column_config.NumberColumn(format="localized"),
+                                            "Outstanding MT": st.column_config.NumberColumn(format="localized")})
+                out = -sum(w["net_sales"] for w in wk if w["net_sales"] < 0)
+                st.caption(f"Rebooked out of unknown so far this marketing year: **{out:,} MT**. USDA does not say which sales moved, so "
+                           "match them to the rows below by your own judgement. The log only holds flash sales of 100,000 MT or more, so "
+                           "it is smaller than USDA's total unknown outstanding.")
+            except Exception as e:
+                st.caption(f"Could not load the ESR weekly figures: {e}")
+
+    months = sorted({r["date"][:7] for r in rows})
+    month_names = {m: f"{t.d(m + '-01'):%b %Y}" for m in months}
+    choices = ["All rows", f"New (after {t.fmt_date(base['cutoff'])})", f"Covered (on/before {t.fmt_date(base['cutoff'])})"] + [month_names[m] for m in months]
+    flt = st.selectbox("Show", choices, key="unk-filter")
+    if flt == "All rows":
+        shown = rows
+    elif flt.startswith("New"):
+        shown = [r for r in rows if r["status"] == "new"]
+    elif flt.startswith("Covered"):
+        shown = [r for r in rows if r["status"] == "covered"]
+    else:
+        m = next(k for k, v in month_names.items() if v == flt)
+        shown = [r for r in rows if r["date"].startswith(m)]
+
     st.dataframe(pd.DataFrame([{"Date": t.fmt_date(r["date"]), "ESR": r["esr"], "MT": r["mt"], "Status": r["status"], "Note": r["note"]}
-                               for r in reversed(rows)]),
+                               for r in reversed(shown)]),
                  hide_index=True, width="stretch", column_config={"MT": st.column_config.NumberColumn(format="localized")})
-    pick = st.multiselect("Remove from the unknown-destination log", [_lbl(r) for r in rows], key="unk-pick")
-    note = st.text_input("Reason (required, shown in the footnote)", key="unk-note")
-    if st.button("Remove selected", disabled=not (pick and note.strip()), key="unk-rm"):
-        chosen = [(r["date"], r["mt"]) for r in rows if _lbl(r) in pick]
+
+    all_shown = st.checkbox(f"Select all {len(shown)} shown", key=f"unk-all-{flt}")
+    opts = [_lbl(r) for r in shown]
+    # the filter and the select-all state are in the key, or a stale selection from another filter would crash
+    pick = st.multiselect("Rows to remove", opts, default=opts if all_shown else [], key=f"unk-pick-{flt}-{all_shown}")
+    chosen_rows = [r for r in shown if _lbl(r) in pick]
+
+    reason = st.selectbox("Reason", REASONS, key="unk-reason")
+    extra = st.text_input("Extra detail (required for Other)", key="unk-extra")
+    note = reason if reason != REASONS[-1] else ""
+    note = (f"{note} \u2014 {extra.strip()}" if note and extra.strip() else note or extra.strip())
+
+    total = sum(r["mt"] for r in chosen_rows)
+    ok = st.checkbox(f"I have checked these {len(chosen_rows)} rows ({total:,} MT) and want them removed", key=f"unk-ok-{len(chosen_rows)}-{total}")
+    if st.button(f"Remove {len(chosen_rows)} row(s)", disabled=not (chosen_rows and note and ok), type="primary", key="unk-rm"):
+        chosen = [(r["date"], r["mt"]) for r in chosen_rows]
 
         def fn(x):
             for iso, mt in chosen:
-                t.remove_unknown(x, iso, mt, note=note.strip())
+                t.remove_unknown(x, iso, mt, note=note)
         _commit(fn, f"Admin: remove {len(chosen)} unknown-destination row(s)")
 
 
