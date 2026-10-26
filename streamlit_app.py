@@ -5,6 +5,7 @@ import pandas as pd
 import streamlit as st
 
 import admin
+import store
 import tracker_logic as t
 
 st.set_page_config(page_title="China Soybean Purchase Tracker", page_icon=":material/grain:", layout="wide")
@@ -276,7 +277,7 @@ def attention_banner(data):
         st.warning("\n\n".join(lines) + "\n\nNot counted in the totals below until you approve them in the **Admin** tab.", icon=":material/notifications:")
 
 
-data = t.load()
+data = store.public_data()
 view_only = st.query_params.get("view") == "1"  # client link: no Admin tab, no banner
 n_wait = t.attention_count(data)
 names = ["Snapshot", "What\u2019s included", "Change log"] + ([] if view_only else [f"Admin ({n_wait})" if n_wait else "Admin"])

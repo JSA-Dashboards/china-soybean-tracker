@@ -2,6 +2,7 @@
 destinations, and manage unconfirmed trade intel. Every action is one GitHub commit
 (see store.py) and one row in the Change log."""
 import hmac
+import os
 from datetime import date
 
 import pandas as pd
@@ -24,21 +25,24 @@ def _commit(fn, message):
     except Exception as e:  # network / permission
         st.error(f"Could not save: {e}")
         return
-    st.session_state["admin_msg"] = message
+    store.refresh_public()
+    st.session_state["cn_admin_msg"] = message
     st.rerun()
 
 
 def _gate():
+    if st.session_state.get("_portal_is_admin"):  # inside the admin portal: its login is the only gate
+        return True
     pw = store.cfg("ADMIN_PASSWORD")
     if not pw:
         st.warning("Admin is locked: set `ADMIN_PASSWORD` in the app secrets.")
         return False
-    if st.session_state.get("admin_ok"):
+    if st.session_state.get("cn_admin_ok"):
         return True
-    entered = st.text_input("Admin password", type="password", key="admin_pw")
+    entered = st.text_input("Admin password", type="password", key="cn_admin_pw")
     if entered:
         if hmac.compare_digest(entered.encode(), str(pw).encode()):
-            st.session_state["admin_ok"] = True
+            st.session_state["cn_admin_ok"] = True
             st.rerun()
         else:
             st.error("Wrong password.")
@@ -252,15 +256,15 @@ def _manual(data):
 def render():
     if not _gate():
         return
-    if not store.configured():
-        st.info("Local-file mode (no `GITHUB_TOKEN`): changes write to the local data file only.")
+    if not store.configured() and not os.environ.get("ALLOW_LOCAL_STORE"):
+        st.warning("Saving is off: add `CHINA_TRACKER_GITHUB_TOKEN` (or `GITHUB_TOKEN`) to the app secrets. You can look, but approvals will not save.")
     try:
         data, _ = store.load_fresh()
     except Exception as e:
         st.error(f"Could not load live data: {e}")
         return
-    if st.session_state.get("admin_msg"):
-        st.success(f"Saved — {st.session_state.pop('admin_msg')}. The public tabs refresh within about a minute.")
+    if st.session_state.get("cn_admin_msg"):
+        st.success(f"Saved — {st.session_state.pop('cn_admin_msg')}. The public tabs refresh within about a minute.")
     n_in = len(data.get("pending", []))
     wk = " · new" if data.get("pending_weekly") else ""
     tabs = st.tabs([f"Inbox ({n_in})", f"Weekly report{wk}", "Unknown destinations", "Trade intel", "Manual entry"])
