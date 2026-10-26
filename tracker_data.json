@@ -189,6 +189,14 @@
       "destination": "Mexico",
       "mt": 182880,
       "reason": "Out of scope (not soybeans)"
+    },
+    {
+      "date": "2026-10-23",
+      "esr": "096",
+      "commodity": "Corn",
+      "destination": "Unknown",
+      "mt": 116000,
+      "reason": "Out of scope (not soybeans)"
     }
   ],
   "log": [
@@ -217,7 +225,8 @@
     "<010001a159677149-ca9fdb74-68c8-4a2c-9646-f8ff90996736-000000@us-east-1.messagingfabric.com>",
     "<010001a15e8ea7c7-0e30d540-5895-42c9-a304-4081c548b86d-000000@us-east-1.messagingfabric.com>",
     "<010001a16397e0d8-acf1f6ef-c1a4-412f-9e9e-dc49654ff5d5-000000@us-east-1.messagingfabric.com>",
-    "<010001a163b4c446-5b4e8480-162e-4688-9677-9b16afce7532-000000@us-east-1.messagingfabric.com>"
+    "<010001a163b4c446-5b4e8480-162e-4688-9677-9b16afce7532-000000@us-east-1.messagingfabric.com>",
+    "<010001a16963716e-c008005a-6cac-47e5-9055-582b53796995-000000@us-east-1.messagingfabric.com>"
   ],
   "pending": [
     {
