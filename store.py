@@ -45,6 +45,15 @@ def secret_names_like(*needles):
         return []
 
 
+def all_secret_names():
+    """Every top-level secret NAME (sections shown as [name]); never values. Shown only to the signed-in admin."""
+    try:
+        import streamlit as st
+        return sorted(f"[{k}]" if hasattr(st.secrets[k], "keys") else str(k) for k in st.secrets.keys())
+    except Exception:
+        return None
+
+
 def _token():
     """CHINA_TRACKER_GITHUB_TOKEN wins so a host app (the admin portal) can keep its own GITHUB_TOKEN."""
     return cfg("CHINA_TRACKER_GITHUB_TOKEN") or cfg("GITHUB_TOKEN")
