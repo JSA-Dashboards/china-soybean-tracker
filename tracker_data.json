@@ -2,26 +2,14 @@
   "as_of": "2026-10-28",
   "marketing_year": "2026/27",
   "baseline": {
-    "label": "Wk 5 (Oct 1)",
-    "cutoff": "2026-10-01",
-    "outstanding_sales": 8804000,
-    "accumulated_exports": 2338328,
-    "source": "USDA ESR Query System, Wk 5 (Oct 1)",
+    "label": "Wk 7 (Oct 15)",
+    "cutoff": "2026-10-15",
+    "outstanding_sales": 9126000,
+    "accumulated_exports": 4321228,
+    "source": "USDA ESR Query System, Wk 7 (Oct 15)",
     "note": "Note: 2–3 boats may be Aug/Sep straddles (25/26 reg., 26/27 shipment)."
   },
   "china_flash": [
-    {
-      "date": "2026-10-14",
-      "esr": "089",
-      "mt": 470000,
-      "note": ""
-    },
-    {
-      "date": "2026-10-15",
-      "esr": "090",
-      "mt": 330000,
-      "note": ""
-    },
     {
       "date": "2026-10-16",
       "esr": "091",
@@ -283,18 +271,17 @@
       "unknown": 3466550,
       "intel": 300000,
       "grand": 17493878
+    },
+    {
+      "ts": "2026-10-28T09:22-05:00",
+      "action": "New weekly ESR baseline",
+      "detail": "Wk 7 (Oct 15) · outstanding 9,126,000 + exports 4,321,228 · 2 flash row(s) absorbed",
+      "confirmed": 15232228,
+      "unknown": 3466550,
+      "intel": 300000,
+      "grand": 18998778
     }
   ],
-  "pending_weekly": {
-    "label": "Wk 7 (Oct 15)",
-    "cutoff": "2026-10-15",
-    "outstanding": 9126000,
-    "exports": 4321228,
-    "total_commitment": 13447228,
-    "unknown_net_sales": 23250,
-    "unknown_outstanding": 5661100,
-    "fetched": "2026-10-22T07:45-05:00"
-  },
   "ingest_seen": [
     "<010001a15441418d-bfa516eb-0c35-48d2-a779-0b4ddd5083f4-000000@us-east-1.messagingfabric.com>",
     "<010001a159677149-ca9fdb74-68c8-4a2c-9646-f8ff90996736-000000@us-east-1.messagingfabric.com>",
