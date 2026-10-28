@@ -45,6 +45,12 @@
       "esr": "094",
       "mt": 134000,
       "note": "(from inbox)"
+    },
+    {
+      "date": "2026-10-21",
+      "esr": "094",
+      "mt": 165000,
+      "note": "(from inbox)"
     }
   ],
   "unknown": [
@@ -238,6 +244,15 @@
       "unknown": 3346550,
       "intel": 300000,
       "grand": 17006878
+    },
+    {
+      "ts": "2026-10-28T09:22-05:00",
+      "action": "Flash sale → China confirmed",
+      "detail": "Oct 21 · ESR-094 · 165,000 MT (from inbox)",
+      "confirmed": 13525328,
+      "unknown": 3346550,
+      "intel": 300000,
+      "grand": 17171878
     }
   ],
   "pending_weekly": {
@@ -260,19 +275,6 @@
     "<010001a1829b4245-50d9f8cb-8581-4259-b823-56c693b37ccc-000000@us-east-1.messagingfabric.com>"
   ],
   "pending": [
-    {
-      "date": "2026-10-21",
-      "esr": "094",
-      "excerpt": "165,000 metric tons of soybeans for delivery to Spain during the 2026/2027 marketing year",
-      "mt": 165000,
-      "dest": null,
-      "reason": "destination not exactly China or unknown (spain)",
-      "kind": "review",
-      "source": "email:<010001a15e8ea7c7-0e30d540-5895-42c9-a304-4081c548b86d-000000@us-east-1.messagingfabric.com>",
-      "subject": "Export Sales to China and Spain",
-      "received": "2026-10-21T08:02-05:00",
-      "id": "p-712d60241f"
-    },
     {
       "date": "2026-10-22",
       "esr": "095",
