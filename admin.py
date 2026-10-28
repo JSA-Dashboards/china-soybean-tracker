@@ -262,9 +262,7 @@ def render():
                    "You can look, but approvals will not save.\n\n"
                    + ("Secret names this app can see that mention GITHUB or CHINA: " + ", ".join(f"`{n}`" for n in seen) if seen
                       else "This app can see no secret named like GITHUB or CHINA yet (names only are shown, never values).")
-                   + "
-
-All secret names this app has: "
+                   + "\n\nAll secret names this app has: "
                    + (", ".join(f"`{n}`" for n in (store.all_secret_names() or [])) or "none could be read"))
     try:
         data, _ = store.load_fresh()
