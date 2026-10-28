@@ -105,6 +105,8 @@ def build(data):
             f"<p>{esr_ref(r)} ({t.fmt_date(r['date'])}): {num(r['mt'])} MT soybeans confirmed direct to China — "
             f"post-cutoff flash sale, layered on top of the {escape(bl)} baseline. {escape(r['note'])}</p>"
         )
+    for r in data.get("flash_removed", []):
+        cfoot.append(f"<p>{esr_ref(r)} ({t.fmt_date(r['date'])}): {num(r['mt'])} MT removed from China confirmed \u2014 {escape(r['note'])}</p>")
     if base.get("note"):
         cfoot.append(f"<p>{escape(base['note'])}</p>")
     crow.append(f'<tr class="tot"><td>Total Confirmed</td><td>{num(s["confirmed_mt"])}</td><td>{t.mmt(s["confirmed_mt"])} MMT</td></tr>')
@@ -302,6 +304,10 @@ with tab_in:
     st.write(f"{i['cargoes']} cargoes × {i['mt_per_cargo']:,} MT = **{i['cargoes'] * i['mt_per_cargo']:,} MT** · {i['week']}")
     st.subheader("Removed from the unknown-destination log")
     st.dataframe(pd.DataFrame(rem), hide_index=True, width="stretch", column_config={"MT": NUM})
+    if data.get("flash_removed"):
+        st.subheader("Removed from China confirmed")
+        st.dataframe(pd.DataFrame([{"Date": t.fmt_date(r["date"]), "ESR": r["esr"], "MT": r["mt"], "Note": r["note"]} for r in data["flash_removed"]]),
+                     hide_index=True, width="stretch", column_config={"MT": NUM})
     st.subheader("Excluded as out of scope")
     st.dataframe(pd.DataFrame(exc), hide_index=True, width="stretch", column_config={"MT": NUM})
 

@@ -250,3 +250,13 @@ def attention(data):
 def attention_count(data):
     a = attention(data)
     return len(a["clean"]) + len(a["review"]) + (1 if a["weekly"] else 0)
+
+
+def remove_china_flash(data, iso, mt, note, esr=""):
+    """Take a confirmed flash row back out (counted by mistake, e.g. it went to another country); footnoted and logged."""
+    for r in data["china_flash"]:
+        if r["date"] == iso and r["mt"] == mt and (not esr or r.get("esr") == esr):
+            data["china_flash"].remove(r)
+            data.setdefault("flash_removed", []).append({"date": iso, "esr": esr or r.get("esr", ""), "mt": mt, "note": note})
+            return log_entry(data, "Removed from China confirmed", f"{fmt_date(iso)} \xb7 ESR-{esr or r.get('esr', '')} \xb7 {mt:,} MT \xb7 {note}")
+    raise ValueError(f"No confirmed flash row on {iso} for {mt:,} MT")

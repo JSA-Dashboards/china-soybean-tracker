@@ -116,3 +116,14 @@ def test_attention_counts_inbox_review_and_weekly():
     a = t.attention(data)
     assert (len(a["clean"]), len(a["review"]), bool(a["weekly"])) == (1, 1, True)
     assert t.attention_count(data) == 3
+
+
+def test_remove_china_flash_takes_it_out_and_footnotes_it():
+    data = copy.deepcopy(t.load())
+    before = t.summarize(data)["confirmed_mt"]
+    t.remove_china_flash(data, "2026-10-16", 558_000, "Not China (another destination)", esr="091")
+    assert t.summarize(data)["confirmed_mt"] == before - 558_000
+    assert data["flash_removed"][-1]["esr"] == "091" and data["log"][-1]["action"] == "Removed from China confirmed"
+    import pytest
+    with pytest.raises(ValueError):
+        t.remove_china_flash(data, "2026-10-16", 558_000, "x", esr="091")

@@ -65,8 +65,9 @@ def _inbox(data):
                 st.caption(f"⚠ {p['reason']}")
             with st.form(f"f-{p['id']}"):
                 c1, c2, c3, c4 = st.columns([1.2, 1, 1, 1])
-                dest = c1.selectbox("Count as", ["China — confirmed flash", "Unknown destinations"],
-                                    index=1 if p.get("dest") == "unknown" else 0, key=f"d-{p['id']}")
+                choices = ["Choose…", "China — confirmed flash", "Unknown destinations"]
+                default = {"china": 1, "unknown": 2}.get(p.get("dest"), 0)  # an ambiguous item never defaults to a destination
+                dest = c1.selectbox("Count as", choices, index=default, key=f"d-{p['id']}")
                 d = c2.date_input("Date", date.fromisoformat(p["date"]), key=f"dt-{p['id']}")
                 esr = c3.text_input("ESR no.", p.get("esr", ""), key=f"e-{p['id']}")
                 mt = c4.number_input("MT", min_value=0, step=1000, value=int(p.get("mt") or 0), key=f"m-{p['id']}")
@@ -75,7 +76,9 @@ def _inbox(data):
                 ok = a.form_submit_button("Approve", type="primary")
                 no = b.form_submit_button("Dismiss (don't count)")
             if ok:
-                if not mt or not esr.strip():
+                if dest.startswith("Choose"):
+                    st.error("Choose China or Unknown destinations first.")
+                elif not mt or not esr.strip():
                     st.error("Enter the ESR number and MT before approving.")
                 else:
                     which = "china" if dest.startswith("China") else "unknown"
@@ -251,6 +254,21 @@ def _manual(data):
     if st.button("Add", disabled=not (esr.strip() and mt), key="man-go"):
         fn = t.add_china_flash if dest.startswith("China") else t.add_unknown
         _commit(lambda x: fn(x, d.isoformat(), esr.strip(), int(mt), note), "Admin: manual flash entry")
+
+    st.divider()
+    st.caption("Correct a confirmed flash sale that was counted by mistake, for example one that went to another country.")
+    flash = sorted(data["china_flash"], key=lambda r: r["date"])
+    if flash:
+        labels = [_lbl(r) for r in flash]
+        pick = st.selectbox("Confirmed flash sale", labels, key="cf-pick")
+        why = st.selectbox("Reason", ["Not China (another destination)", "Duplicate entry", "Entered in error", "Other (type below)"], key="cf-why")
+        extra = st.text_input("Extra detail (required for Other)", key="cf-extra")
+        rnote = why if not why.startswith("Other") else ""
+        rnote = (f"{rnote} — {extra.strip()}" if rnote and extra.strip() else rnote or extra.strip())
+        sel = flash[labels.index(pick)]
+        sure = st.checkbox(f"I want {_lbl(sel)} removed from China confirmed", key=f"cf-ok-{pick}")
+        if st.button("Remove from confirmed", disabled=not (rnote and sure), key="cf-go"):
+            _commit(lambda x: t.remove_china_flash(x, sel["date"], sel["mt"], rnote, esr=sel.get("esr", "")), "Admin: remove a confirmed flash sale")
 
 
 def render():
