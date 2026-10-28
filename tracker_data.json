@@ -1,5 +1,5 @@
 {
-  "as_of": "2026-10-21",
+  "as_of": "2026-10-22",
   "marketing_year": "2026/27",
   "baseline": {
     "label": "Wk 5 (Oct 1)",
@@ -50,6 +50,12 @@
       "date": "2026-10-21",
       "esr": "094",
       "mt": 165000,
+      "note": "(from inbox)"
+    },
+    {
+      "date": "2026-10-22",
+      "esr": "095",
+      "mt": 202000,
       "note": "(from inbox)"
     }
   ],
@@ -253,6 +259,15 @@
       "unknown": 3346550,
       "intel": 300000,
       "grand": 17171878
+    },
+    {
+      "ts": "2026-10-28T09:22-05:00",
+      "action": "Flash sale → China confirmed",
+      "detail": "Oct 22 · ESR-095 · 202,000 MT (from inbox)",
+      "confirmed": 13727328,
+      "unknown": 3346550,
+      "intel": 300000,
+      "grand": 17373878
     }
   ],
   "pending_weekly": {
@@ -275,19 +290,6 @@
     "<010001a1829b4245-50d9f8cb-8581-4259-b823-56c693b37ccc-000000@us-east-1.messagingfabric.com>"
   ],
   "pending": [
-    {
-      "date": "2026-10-22",
-      "esr": "095",
-      "excerpt": "202,000 metric tons of soybeans for delivery to China during the 2026/2027 marketing year.",
-      "mt": 202000,
-      "dest": "china",
-      "reason": "",
-      "kind": "flash",
-      "source": "email:<010001a163b4c446-5b4e8480-162e-4688-9677-9b16afce7532-000000@us-east-1.messagingfabric.com>",
-      "subject": "Export Sales to China",
-      "received": "2026-10-22T08:03-05:00",
-      "id": "p-60e0da8638"
-    },
     {
       "date": "2026-10-28",
       "esr": "097",
