@@ -43,3 +43,13 @@ def test_load_fresh_is_read_only_without_a_token(monkeypatch):
     _no_token(monkeypatch)
     monkeypatch.setattr(store, "load_public", lambda: {"x": 1})
     assert store.load_fresh() == ({"x": 1}, None)
+
+
+def test_secret_names_like_returns_names_only(monkeypatch):
+    import streamlit as st
+
+    fake = {"CHINA_TRACKER_GITHUB_TOKEN": "supersecret", "other": {"GITHUB_TOKEN": "x"}, "SNOWFLAKE_ACCOUNT": "a"}
+    monkeypatch.setattr(st, "secrets", fake)
+    names = store.secret_names_like("GITHUB", "CHINA")
+    assert names == ["CHINA_TRACKER_GITHUB_TOKEN", "other.GITHUB_TOKEN"]
+    assert "supersecret" not in " ".join(names)

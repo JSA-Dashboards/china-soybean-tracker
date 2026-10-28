@@ -28,6 +28,23 @@ def cfg(name, default=None):
         return default
 
 
+def secret_names_like(*needles):
+    """NAMES only (never values) of app secrets containing any needle, one level into [sections] too,
+    so a token pasted under a heading shows up as 'section.NAME'."""
+    try:
+        import streamlit as st
+        out = []
+        for k in st.secrets.keys():
+            v = st.secrets[k]
+            if any(n in str(k).upper() for n in needles):
+                out.append(str(k))
+            if hasattr(v, "keys"):
+                out += [f"{k}.{kk}" for kk in v.keys() if any(n in str(kk).upper() for n in needles)]
+        return sorted(out)
+    except Exception:
+        return []
+
+
 def _token():
     """CHINA_TRACKER_GITHUB_TOKEN wins so a host app (the admin portal) can keep its own GITHUB_TOKEN."""
     return cfg("CHINA_TRACKER_GITHUB_TOKEN") or cfg("GITHUB_TOKEN")

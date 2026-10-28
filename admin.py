@@ -257,7 +257,11 @@ def render():
     if not _gate():
         return
     if not store.configured() and not os.environ.get("ALLOW_LOCAL_STORE"):
-        st.warning("Saving is off: add `CHINA_TRACKER_GITHUB_TOKEN` (or `GITHUB_TOKEN`) to the app secrets. You can look, but approvals will not save.")
+        seen = store.secret_names_like("GITHUB", "CHINA")
+        st.warning("Saving is off: add `CHINA_TRACKER_GITHUB_TOKEN` (or `GITHUB_TOKEN`) as a top-level line in the app secrets, above any [section] heading. "
+                   "You can look, but approvals will not save.\n\n"
+                   + ("Secret names this app can see that mention GITHUB or CHINA: " + ", ".join(f"`{n}`" for n in seen) if seen
+                      else "This app can see no secret named like GITHUB or CHINA yet (names only are shown, never values)."))
     try:
         data, _ = store.load_fresh()
     except Exception as e:
