@@ -1,5 +1,5 @@
 {
-  "as_of": "2026-10-22",
+  "as_of": "2026-10-28",
   "marketing_year": "2026/27",
   "baseline": {
     "label": "Wk 5 (Oct 1)",
@@ -173,6 +173,12 @@
       "esr": "092",
       "mt": 261000,
       "note": ""
+    },
+    {
+      "date": "2026-10-28",
+      "esr": "097",
+      "mt": 120000,
+      "note": "(from inbox)"
     }
   ],
   "unknown_removed": [
@@ -268,6 +274,15 @@
       "unknown": 3346550,
       "intel": 300000,
       "grand": 17373878
+    },
+    {
+      "ts": "2026-10-28T09:22-05:00",
+      "action": "Flash sale → unknown destinations",
+      "detail": "Oct 28 · ESR-097 · 120,000 MT (from inbox)",
+      "confirmed": 13727328,
+      "unknown": 3466550,
+      "intel": 300000,
+      "grand": 17493878
     }
   ],
   "pending_weekly": {
@@ -289,19 +304,5 @@
     "<010001a16963716e-c008005a-6cac-47e5-9055-582b53796995-000000@us-east-1.messagingfabric.com>",
     "<010001a1829b4245-50d9f8cb-8581-4259-b823-56c693b37ccc-000000@us-east-1.messagingfabric.com>"
   ],
-  "pending": [
-    {
-      "date": "2026-10-28",
-      "esr": "097",
-      "excerpt": "120,000 metric tons of soybeans for delivery to unknown destinations during the 2026/2027 marketing year.",
-      "mt": 120000,
-      "dest": "unknown",
-      "reason": "",
-      "kind": "flash",
-      "source": "email:<010001a1829b4245-50d9f8cb-8581-4259-b823-56c693b37ccc-000000@us-east-1.messagingfabric.com>",
-      "subject": "Export Sales to Unknown Destinations",
-      "received": "2026-10-28T08:03-05:00",
-      "id": "p-d130253dd3"
-    }
-  ]
+  "pending": []
 }
