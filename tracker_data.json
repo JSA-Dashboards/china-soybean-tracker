@@ -3,50 +3,13 @@
   "marketing_year": "2026/27",
   "baseline": {
     "label": "Wk 7 (Oct 15)",
-    "cutoff": "2026-10-15",
+    "cutoff": "2026-10-29",
     "outstanding_sales": 9126000,
     "accumulated_exports": 4321228,
     "source": "USDA ESR Query System, Wk 7 (Oct 15)",
     "note": "Note: 2–3 boats may be Aug/Sep straddles (25/26 reg., 26/27 shipment)."
   },
-  "china_flash": [
-    {
-      "date": "2026-10-16",
-      "esr": "091",
-      "mt": 558000,
-      "note": "(Same release also reported 127,000 MT corn to Japan — out of scope for this soybean/China tracker, not included.)"
-    },
-    {
-      "date": "2026-10-19",
-      "esr": "092",
-      "mt": 114000,
-      "note": ""
-    },
-    {
-      "date": "2026-10-20",
-      "esr": "093",
-      "mt": 612000,
-      "note": "(from inbox)"
-    },
-    {
-      "date": "2026-10-21",
-      "esr": "094",
-      "mt": 134000,
-      "note": "(from inbox)"
-    },
-    {
-      "date": "2026-10-21",
-      "esr": "094",
-      "mt": 165000,
-      "note": "(from inbox)"
-    },
-    {
-      "date": "2026-10-22",
-      "esr": "095",
-      "mt": 202000,
-      "note": "(from inbox)"
-    }
-  ],
+  "china_flash": [],
   "unknown": [
     {
       "date": "2026-06-17",
@@ -298,6 +261,15 @@
       "unknown": 3466550,
       "intel": 0,
       "grand": 18698778
+    },
+    {
+      "ts": "2026-10-29T08:50-05:00",
+      "action": "New weekly ESR baseline",
+      "detail": "Wk 7 (Oct 15) · outstanding 9,126,000 + exports 4,321,228 · 6 flash row(s) absorbed",
+      "confirmed": 13447228,
+      "unknown": 3466550,
+      "intel": 0,
+      "grand": 16913778
     }
   ],
   "ingest_seen": [
