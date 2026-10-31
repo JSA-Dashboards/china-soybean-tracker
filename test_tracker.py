@@ -26,7 +26,7 @@ def test_half_up_rounding():
 
 def test_new_baseline_drops_covered_flash():
     data = copy.deepcopy(t.load())
-    t.new_baseline(data, "Wk 6 (Oct 8)", "2026-10-15", 9_000_000, 2_500_000)
+    t.new_baseline(data, "Wk 7 (Oct 15)", "2026-10-15", 9_000_000, 2_500_000)
     assert sorted(r["esr"] for r in data["china_flash"]) == ["091", "092"]
     assert all(r["date"] > "2026-10-15" for r in data["china_flash"])
     assert t.summarize(data)["confirmed_mt"] == 11_500_000 + 558_000 + 114_000
@@ -96,11 +96,11 @@ def test_intel_confirm_moves_cargo_to_confirmed_flash():
 
 def test_weekly_preview_and_apply_offsets_without_double_count():
     data = copy.deepcopy(t.load())
-    pv = t.preview_weekly(data, "Wk 6 (Oct 8)", "2026-10-15", 9_000_000, 2_500_000)
+    pv = t.preview_weekly(data, "Wk 7 (Oct 15)", "2026-10-15", 9_000_000, 2_500_000)
     assert [r["esr"] for r in pv["absorbed"]] == ["089", "090"]
     assert pv["confirmed_after"] == 11_500_000 + 558_000 + 114_000
     cands = [(r["date"], r["mt"]) for r in pv["unknown_candidates"] if r["date"] >= "2026-10-05"]
-    t.apply_weekly(data, "Wk 6 (Oct 8)", "2026-10-15", 9_000_000, 2_500_000, unknown_to_remove=cands, clear_intel=2)
+    t.apply_weekly(data, "Wk 7 (Oct 15)", "2026-10-15", 9_000_000, 2_500_000, unknown_to_remove=cands, clear_intel=2)
     s = t.summarize(data)
     assert s["intel_mt"] == 180_000
     assert all(r["date"] > "2026-10-15" for r in data["china_flash"])
@@ -127,3 +127,15 @@ def test_remove_china_flash_takes_it_out_and_footnotes_it():
     import pytest
     with pytest.raises(ValueError):
         t.remove_china_flash(data, "2026-10-16", 558_000, "x", esr="091")
+
+
+def test_baseline_label_date_must_match_cutoff():
+    """The Oct 29 incident: 'Wk 7 (Oct 15)' applied with cutoff Oct 29 silently absorbed six confirmed flash rows."""
+    import pytest
+    data = copy.deepcopy(t.load())
+    before = len(data["china_flash"])
+    with pytest.raises(ValueError, match="week-ending"):
+        t.new_baseline(data, "Wk 7 (Oct 15)", "2026-10-29", 9_126_000, 4_321_228)
+    assert len(data["china_flash"]) == before and data["baseline"]["cutoff"] == "2026-10-01"  # nothing changed
+    t.new_baseline(data, "Wk 7 (Oct 15)", "2026-10-15", 9_126_000, 4_321_228)  # a matching pair is fine
+    t.new_baseline(data, "Custom label", "2026-10-22", 1, 1)  # a label with no date is not second-guessed

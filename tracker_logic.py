@@ -4,6 +4,7 @@ All figures are metric tons (MT). MMT = MT / 1,000,000 rounded half-up to 3
 decimals; percentages of the 25 MMT goal are rounded half-up to 1 decimal.
 """
 import json
+import re
 from datetime import date, datetime, timezone
 from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
@@ -131,6 +132,10 @@ def set_intel(data, cargoes, week=None, mt_per_cargo=None):
 def new_baseline(data, label, cutoff_iso, outstanding, exports, source=None):
     """New weekly ESR snapshot: replaces the baseline and every flash row it covers
     (flash dated on/before the cutoff), so nothing is counted twice."""
+    m = re.search(r"\((\w{3}) (\d{1,2})\)", label)
+    if m and f"{d(cutoff_iso):%b} {d(cutoff_iso).day}" != f"{m.group(1)} {int(m.group(2))}":
+        raise ValueError(f"The report label says {m.group(1)} {m.group(2)} but the week-ending date is {fmt_date(cutoff_iso)}. "
+                         "A wrong cutoff silently drops confirmed flash sales, so fix one of them.")
     data["baseline"].update(
         label=label, cutoff=cutoff_iso, outstanding_sales=outstanding,
         accumulated_exports=exports, source=source or f"USDA ESR Query System, {label}",

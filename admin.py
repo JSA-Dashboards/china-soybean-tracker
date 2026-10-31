@@ -115,7 +115,11 @@ def _weekly(data):
     cutoff = c2.date_input("Week ending (cutoff)", date.fromisoformat(d0["cutoff"]), key=f"wc-{d0['label']}")
     outstanding = c3.number_input("China outstanding sales (MT)", min_value=0, step=1000, value=int(d0["outstanding"]), key=f"wo-{d0['label']}")
     exports = c4.number_input("China accumulated exports (MT)", min_value=0, step=1000, value=int(d0["exports"]), key=f"we-{d0['label']}")
-    pv = t.preview_weekly(data, label, cutoff.isoformat(), int(outstanding), int(exports))
+    try:
+        pv = t.preview_weekly(data, label, cutoff.isoformat(), int(outstanding), int(exports))
+    except ValueError as e:
+        st.error(str(e))
+        return
     m1, m2 = st.columns(2)
     m1.metric("Confirmed MMT after", t.mmt(pv["confirmed_after"]), f"{(pv['confirmed_after'] - pv['confirmed_before']) / 1e6:+.3f}")
     m2.metric("Grand total MMT after (before further offsets)", t.mmt(pv["grand_after"]), f"{(pv['grand_after'] - pv['grand_before']) / 1e6:+.3f}")
