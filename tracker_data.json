@@ -365,5 +365,15 @@
       "received": "2026-10-30T08:03-05:00",
       "id": "p-d9ae5dcbe8"
     }
-  ]
+  ],
+  "pending_weekly": {
+    "label": "Wk 8 (Oct 22)",
+    "cutoff": "2026-10-22",
+    "outstanding": 9096000,
+    "exports": 5978187,
+    "total_commitment": 15074187,
+    "unknown_net_sales": 153250,
+    "unknown_outstanding": 5814350,
+    "fetched": "2026-10-31T14:24-05:00"
+  }
 }
