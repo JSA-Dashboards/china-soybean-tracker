@@ -325,6 +325,15 @@
       "unknown": 3466550,
       "intel": 0,
       "grand": 18698778
+    },
+    {
+      "ts": "2026-10-31T15:08-05:00",
+      "action": "Inbox item dismissed",
+      "detail": "2026-10-30 · 165150 MT · dismissed by admin",
+      "confirmed": 15232228,
+      "unknown": 3466550,
+      "intel": 0,
+      "grand": 18698778
     }
   ],
   "ingest_seen": [
@@ -339,19 +348,6 @@
     "<010001a18ce7d841-84ab069e-72e2-4da5-b1db-4aed8887c0d4-000000@us-east-1.messagingfabric.com>"
   ],
   "pending": [
-    {
-      "date": "2026-10-30",
-      "esr": "098",
-      "excerpt": "165,150 metric tons of soybeans received in the reporting period for delivery to unknown destinations during the 2026/2027 marketing year",
-      "mt": 165150,
-      "dest": "unknown",
-      "reason": "",
-      "kind": "flash",
-      "source": "email:<010001a18ce7d841-84ab069e-72e2-4da5-b1db-4aed8887c0d4-000000@us-east-1.messagingfabric.com>",
-      "subject": "Export Sales to Unknown Destinations",
-      "received": "2026-10-30T08:03-05:00",
-      "id": "p-f253673f19"
-    },
     {
       "date": "2026-10-30",
       "esr": "098",
