@@ -288,7 +288,36 @@
     "<010001a16397e0d8-acf1f6ef-c1a4-412f-9e9e-dc49654ff5d5-000000@us-east-1.messagingfabric.com>",
     "<010001a163b4c446-5b4e8480-162e-4688-9677-9b16afce7532-000000@us-east-1.messagingfabric.com>",
     "<010001a16963716e-c008005a-6cac-47e5-9055-582b53796995-000000@us-east-1.messagingfabric.com>",
-    "<010001a1829b4245-50d9f8cb-8581-4259-b823-56c693b37ccc-000000@us-east-1.messagingfabric.com>"
+    "<010001a1829b4245-50d9f8cb-8581-4259-b823-56c693b37ccc-000000@us-east-1.messagingfabric.com>",
+    "<010001a187a48d24-413cc469-0775-453a-9291-14878747da7f-000000@us-east-1.messagingfabric.com>",
+    "<010001a18ce7d841-84ab069e-72e2-4da5-b1db-4aed8887c0d4-000000@us-east-1.messagingfabric.com>"
   ],
-  "pending": []
+  "pending": [
+    {
+      "date": "2026-10-30",
+      "esr": "098",
+      "excerpt": "165,150 metric tons of soybeans received in the reporting period for delivery to unknown destinations during the 2026/2027 marketing year",
+      "mt": 165150,
+      "dest": "unknown",
+      "reason": "",
+      "kind": "flash",
+      "source": "email:<010001a18ce7d841-84ab069e-72e2-4da5-b1db-4aed8887c0d4-000000@us-east-1.messagingfabric.com>",
+      "subject": "Export Sales to Unknown Destinations",
+      "received": "2026-10-30T08:03-05:00",
+      "id": "p-f253673f19"
+    },
+    {
+      "date": "2026-10-30",
+      "esr": "098",
+      "excerpt": "132,000 metric tons of soybeans for delivery to unknown destinations during the 2026/2027 marketing year",
+      "mt": 132000,
+      "dest": "unknown",
+      "reason": "",
+      "kind": "flash",
+      "source": "email:<010001a18ce7d841-84ab069e-72e2-4da5-b1db-4aed8887c0d4-000000@us-east-1.messagingfabric.com>",
+      "subject": "Export Sales to Unknown Destinations",
+      "received": "2026-10-30T08:03-05:00",
+      "id": "p-d9ae5dcbe8"
+    }
+  ]
 }
