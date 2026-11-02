@@ -15,6 +15,12 @@
       "esr": "099-26",
       "mt": 136000,
       "note": ""
+    },
+    {
+      "date": "2026-11-02",
+      "esr": "099",
+      "mt": 136000,
+      "note": "(from inbox)"
     }
   ],
   "unknown": [
@@ -354,6 +360,15 @@
       "unknown": 3598550,
       "intel": 0,
       "grand": 18808737
+    },
+    {
+      "ts": "2026-11-02T08:22-06:00",
+      "action": "Flash sale → China confirmed",
+      "detail": "Nov 2 · ESR-099 · 136,000 MT (from inbox)",
+      "confirmed": 15346187,
+      "unknown": 3598550,
+      "intel": 0,
+      "grand": 18944737
     }
   ],
   "ingest_seen": [
@@ -369,19 +384,6 @@
     "<010001a19c91c015-9ec18424-0bd5-4b2a-814c-a0fef8101a38-000000@us-east-1.messagingfabric.com>"
   ],
   "pending": [
-    {
-      "date": "2026-11-02",
-      "esr": "099",
-      "excerpt": "136,000 metric tons of soybeans for delivery to China during the 2026/2027 marketing year",
-      "mt": 136000,
-      "dest": "china",
-      "reason": "",
-      "kind": "flash",
-      "source": "email:<010001a19c91c015-9ec18424-0bd5-4b2a-814c-a0fef8101a38-000000@us-east-1.messagingfabric.com>",
-      "subject": "Export Sales to China and Mexico",
-      "received": "2026-11-02T08:02-06:00",
-      "id": "p-727f6e2c03"
-    },
     {
       "date": "2026-11-02",
       "esr": "099",
