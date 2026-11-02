@@ -191,6 +191,14 @@
       "destination": "Unknown",
       "mt": 116000,
       "reason": "Out of scope (not soybeans)"
+    },
+    {
+      "date": "2026-11-02",
+      "esr": "099",
+      "commodity": "Corn",
+      "destination": "Mexico. Of",
+      "mt": 1729740,
+      "reason": "Out of scope (not soybeans)"
     }
   ],
   "log": [
@@ -357,7 +365,48 @@
     "<010001a16963716e-c008005a-6cac-47e5-9055-582b53796995-000000@us-east-1.messagingfabric.com>",
     "<010001a1829b4245-50d9f8cb-8581-4259-b823-56c693b37ccc-000000@us-east-1.messagingfabric.com>",
     "<010001a187a48d24-413cc469-0775-453a-9291-14878747da7f-000000@us-east-1.messagingfabric.com>",
-    "<010001a18ce7d841-84ab069e-72e2-4da5-b1db-4aed8887c0d4-000000@us-east-1.messagingfabric.com>"
+    "<010001a18ce7d841-84ab069e-72e2-4da5-b1db-4aed8887c0d4-000000@us-east-1.messagingfabric.com>",
+    "<010001a19c91c015-9ec18424-0bd5-4b2a-814c-a0fef8101a38-000000@us-east-1.messagingfabric.com>"
   ],
-  "pending": []
+  "pending": [
+    {
+      "date": "2026-11-02",
+      "esr": "099",
+      "excerpt": "136,000 metric tons of soybeans for delivery to China during the 2026/2027 marketing year",
+      "mt": 136000,
+      "dest": "china",
+      "reason": "",
+      "kind": "flash",
+      "source": "email:<010001a19c91c015-9ec18424-0bd5-4b2a-814c-a0fef8101a38-000000@us-east-1.messagingfabric.com>",
+      "subject": "Export Sales to China and Mexico",
+      "received": "2026-11-02T08:02-06:00",
+      "id": "p-727f6e2c03"
+    },
+    {
+      "date": "2026-11-02",
+      "esr": "099",
+      "excerpt": "1,135,380 metric tons is for delivery during the 2026/2027 marketing year",
+      "mt": 1135380,
+      "dest": null,
+      "reason": "commodity not recognised; destination not exactly China or unknown (none found)",
+      "kind": "review",
+      "source": "email:<010001a19c91c015-9ec18424-0bd5-4b2a-814c-a0fef8101a38-000000@us-east-1.messagingfabric.com>",
+      "subject": "Export Sales to China and Mexico",
+      "received": "2026-11-02T08:02-06:00",
+      "id": "p-6000b551e8"
+    },
+    {
+      "date": "2026-11-02",
+      "esr": "099",
+      "excerpt": "594,360 metric tons is for delivery during the 2027/2028 marketing year",
+      "mt": 594360,
+      "dest": null,
+      "reason": "commodity not recognised; destination not exactly China or unknown (none found); marketing year 2027/28 (need 2026/27 only)",
+      "kind": "review",
+      "source": "email:<010001a19c91c015-9ec18424-0bd5-4b2a-814c-a0fef8101a38-000000@us-east-1.messagingfabric.com>",
+      "subject": "Export Sales to China and Mexico",
+      "received": "2026-11-02T08:02-06:00",
+      "id": "p-1e10d9b2ba"
+    }
+  ]
 }
