@@ -405,6 +405,15 @@
       "unknown": 3598550,
       "intel": 360000,
       "grand": 19304737
+    },
+    {
+      "ts": "2026-11-02T08:25-06:00",
+      "action": "Trade intel set",
+      "detail": "6 cargoes × 60,000 MT · Wk of Sep 28",
+      "confirmed": 15346187,
+      "unknown": 3598550,
+      "intel": 360000,
+      "grand": 19304737
     }
   ],
   "ingest_seen": [
