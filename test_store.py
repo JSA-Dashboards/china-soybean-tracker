@@ -53,3 +53,29 @@ def test_secret_names_like_returns_names_only(monkeypatch):
     names = store.secret_names_like("GITHUB", "CHINA")
     assert names == ["CHINA_TRACKER_GITHUB_TOKEN", "other.GITHUB_TOKEN"]
     assert "supersecret" not in " ".join(names)
+
+
+def test_public_data_uses_the_api_when_a_token_exists(monkeypatch):
+    """raw.githubusercontent.com is cached 5 minutes; with a token the Snapshot must read the API so a save shows at once."""
+    calls = []
+    monkeypatch.setattr(store, "cfg", lambda name, default=None: "tok" if name == "GITHUB_TOKEN" else default)
+    monkeypatch.setattr(store, "_api_read", lambda: (calls.append("api") or {"via": "api"}, "sha"))
+    monkeypatch.setattr(store.requests, "get", lambda *a, **k: calls.append("raw"))
+    assert store.load_public() == {"via": "api"} and calls == ["api"]
+
+
+def test_public_data_falls_back_to_raw_when_the_api_fails(monkeypatch):
+    class R:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"via": "raw"}
+
+    def boom():
+        raise OSError("api down")
+
+    monkeypatch.setattr(store, "cfg", lambda name, default=None: "tok" if name == "GITHUB_TOKEN" else default)
+    monkeypatch.setattr(store, "_api_read", boom)
+    monkeypatch.setattr(store.requests, "get", lambda *a, **k: R())
+    assert store.load_public() == {"via": "raw"}

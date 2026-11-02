@@ -292,7 +292,7 @@ def render():
         st.error(f"Could not load live data: {e}")
         return
     if st.session_state.get("cn_admin_msg"):
-        st.success(f"Saved — {st.session_state.pop('cn_admin_msg')}. The public tabs refresh within about a minute.")
+        st.success(f"Saved — {st.session_state.pop('cn_admin_msg')}..")
     n_in = len(data.get("pending", []))
     wk = " · new" if data.get("pending_weekly") else ""
     tabs = st.tabs([f"Inbox ({n_in})", f"Weekly report{wk}", "Unknown destinations", "Trade intel", "Manual entry"])

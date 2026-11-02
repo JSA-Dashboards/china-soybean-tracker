@@ -76,6 +76,13 @@ def load_public():
     """The live data file from the repo's main branch (no token needed for a public repo), else the local copy."""
     repo = cfg("GITHUB_REPO", "JSA-Dashboards/china-soybean-tracker")
     url = f"https://raw.githubusercontent.com/{repo}/{cfg('GITHUB_BRANCH', 'main')}/{cfg('GITHUB_DATA_PATH', 'tracker_data.json')}"
+    if configured():
+        # raw.githubusercontent.com is cached for 5 minutes (max-age=300), so a save would not show on the
+        # Snapshot until then; the contents API with the token is current the moment a commit lands.
+        try:
+            return _api_read()[0]
+        except Exception:
+            pass
     try:
         r = requests.get(url, headers={"Authorization": f"token {_token()}"} if configured() else {}, timeout=10)
         r.raise_for_status()
@@ -105,6 +112,11 @@ def load_fresh():
     """(data, sha). sha is None when there is no token (read-only)."""
     if not configured():
         return load_public(), None
+    return _api_read()
+
+
+def _api_read():
+    """(data, sha) from the GitHub contents API: always the latest commit."""
     r = requests.get(_url(), headers=_headers(), params={"ref": cfg("GITHUB_BRANCH", "main")}, timeout=20)
     r.raise_for_status()
     j = r.json()
