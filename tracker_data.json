@@ -1,5 +1,5 @@
 {
-  "as_of": "2026-10-30",
+  "as_of": "2026-11-02",
   "marketing_year": "2026/27",
   "baseline": {
     "label": "Wk 8 (Oct 22)",
@@ -9,7 +9,14 @@
     "source": "USDA ESR Query System, Wk 8 (Oct 22)",
     "note": "Note: 2–3 boats may be Aug/Sep straddles (25/26 reg., 26/27 shipment)."
   },
-  "china_flash": [],
+  "china_flash": [
+    {
+      "date": "2026-11-02",
+      "esr": "099-26",
+      "mt": 136000,
+      "note": ""
+    }
+  ],
   "unknown": [
     {
       "date": "2026-06-17",
@@ -330,6 +337,15 @@
       "unknown": 3598550,
       "intel": 0,
       "grand": 18672737
+    },
+    {
+      "ts": "2026-11-02T08:06-06:00",
+      "action": "Flash sale → China confirmed",
+      "detail": "Nov 2 · ESR-099-26 · 136,000 MT",
+      "confirmed": 15210187,
+      "unknown": 3598550,
+      "intel": 0,
+      "grand": 18808737
     }
   ],
   "ingest_seen": [
