@@ -369,6 +369,15 @@
       "unknown": 3598550,
       "intel": 0,
       "grand": 18944737
+    },
+    {
+      "ts": "2026-11-02T08:22-06:00",
+      "action": "Inbox item dismissed",
+      "detail": "2026-11-02 · 1135380 MT · dismissed by admin",
+      "confirmed": 15346187,
+      "unknown": 3598550,
+      "intel": 0,
+      "grand": 18944737
     }
   ],
   "ingest_seen": [
@@ -384,19 +393,6 @@
     "<010001a19c91c015-9ec18424-0bd5-4b2a-814c-a0fef8101a38-000000@us-east-1.messagingfabric.com>"
   ],
   "pending": [
-    {
-      "date": "2026-11-02",
-      "esr": "099",
-      "excerpt": "1,135,380 metric tons is for delivery during the 2026/2027 marketing year",
-      "mt": 1135380,
-      "dest": null,
-      "reason": "commodity not recognised; destination not exactly China or unknown (none found)",
-      "kind": "review",
-      "source": "email:<010001a19c91c015-9ec18424-0bd5-4b2a-814c-a0fef8101a38-000000@us-east-1.messagingfabric.com>",
-      "subject": "Export Sales to China and Mexico",
-      "received": "2026-11-02T08:02-06:00",
-      "id": "p-6000b551e8"
-    },
     {
       "date": "2026-11-02",
       "esr": "099",
