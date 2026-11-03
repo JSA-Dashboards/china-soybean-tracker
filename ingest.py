@@ -43,7 +43,7 @@ IGNORE_DEST = ("U.S", "USDA", "Department", "Export", "Private")
 
 
 def _norm_dest(raw):
-    r = raw.strip().lower()
+    r = re.split(r"\.\s", raw.strip())[0].rstrip(".").strip().lower()
     return "unknown" if r.startswith("unknown") else r
 
 
@@ -58,6 +58,36 @@ def _core(text):
     return flat[:cut.start()] if cut else flat
 
 
+# "Of the total, 800,000 metric tons is for delivery during the 2026/2027 marketing year and the balance is for ... 2027/2028
+# marketing year." Splits ONE headline sale across marketing years; its amounts are parts of the headline, not new sales.
+OF_TOTAL_RE = re.compile(r"Of\s+the\s+total\b[^.]*?marketing\s+year(?:\s+and\b[^.]*?marketing\s+year)?\.?", re.I)
+_BALANCE_RE = re.compile(r"\b(?:the\s+)?(?:balance|remainder|rest)\b", re.I)
+
+
+def _split_clause(clause, total):
+    """[(mt, marketing_year)] when the clause allocates the whole headline total across marketing years, else None.
+    Each marketing year takes the nearest amount (or 'the balance') in front of it."""
+    toks = [(m.start(), "amt", int(m.group(1).replace(",", ""))) for m in AMOUNT_RE.finditer(clause)]
+    toks += [(m.start(), "bal", None) for m in _BALANCE_RE.finditer(clause)]
+    toks += [(m.start(), "my", f"{m.group(1)}/{m.group(2)}") for m in MY_RE.finditer(clause)]
+    pairs, last = [], None
+    for _, kind, val in sorted(toks):
+        if kind in ("amt", "bal"):
+            last = (kind, val)
+        elif last is None:
+            return None
+        else:
+            pairs.append((last, val))
+            last = None
+    if not pairs:
+        return None
+    explicit = sum(v for (k, v), _ in pairs if k == "amt")
+    balances = [i for i, ((k, _), _) in enumerate(pairs) if k == "bal"]
+    if len(balances) > 1 or explicit > total or (not balances and explicit != total):
+        return None
+    return [(total - explicit if k == "bal" else v, my) for (k, v), my in pairs]
+
+
 def parse_text(text, received_iso, subject=""):
     """Return {'clean': [...], 'review': [...], 'out_of_scope': [...]} for one email body.
     FAS flash releases are a short list of items, each 'N metric tons of <commodity> for
@@ -68,53 +98,71 @@ def parse_text(text, received_iso, subject=""):
     out = {"clean": [], "review": [], "out_of_scope": []}
     core = _core(text)
     risky = RISKY.search(core)  # switch/cancel wording anywhere taints every soybean item
+    clauses = []
+
+    def _park(m):  # "Of the total, X is for 2026/27 and the balance for 2027/28" splits ONE sale: lift it out of the item list
+        clauses.append(m.group(0))
+        return f" \x00{len(clauses) - 1}\x00 "
+    core = OF_TOTAL_RE.sub(_park, core)
     starts = [m.start() for m in AMOUNT_RE.finditer(core)]
     seen = set()
     for i, s0 in enumerate(starts):
-        seg = core[s0: starts[i + 1] if i + 1 < len(starts) else len(core)]
+        full = core[s0: starts[i + 1] if i + 1 < len(starts) else len(core)]
+        parked = re.search(r"\x00(\d+)\x00", full)
+        clause = clauses[int(parked.group(1))] if parked else ""
+        seg = re.sub(r"\x00\d+\x00", "", full)
         end = re.search(r"marketing\s+year\.?", seg, re.I)
-        seg = (seg[:end.end()] if end else seg[:300]).strip()
+        seg = re.sub(r"\s+", " ", seg[:end.end()] if end else seg[:300]).strip()
         if seg in seen:
             continue
         seen.add(seg)
         amt = AMOUNT_RE.match(seg)
-        mt = int(amt.group(1).replace(",", ""))
-        com_m = COMMODITY_RE.search(seg)
-        commodity = com_m.group(1).strip().lower() if com_m else ""
-        if SOY_RE.search(seg) and not NONSOY_SOY_RE.search(commodity):
-            commodity = "soybeans"  # "soybeans previously reported ..." must not slip out of scope
-        elif commodity and not NONSOY_RE.search(commodity):
-            commodity = ""  # unfamiliar commodity text -> review, never silently dropped
-        dests = {_norm_dest(d) for d in DEST_RE.findall(seg) if not d.startswith(IGNORE_DEST)}
-        mys = {f"{a}/{b}" for a, b in MY_RE.findall(seg)}
-        base = {"date": received_iso[:10], "esr": esr, "excerpt": seg[:400]}
-        if commodity and commodity != "soybeans":
-            out["out_of_scope"].append({**base, "commodity": commodity.title(), "reason": "Out of scope (not soybeans)",
-                                        "dest": ", ".join(d.title() for d in sorted(dests)) or "\u2014", "mt": mt})
-            continue
-        # Soybeans to a clearly different named country (e.g. Spain): logged as out of scope, never queued.
-        # Anything that could be China (any 'china'/'prc' spelling), unknown destinations, or switch/cancel wording stays review.
-        if (commodity == "soybeans" and dests and not (dests & {"china", "unknown"})
-                and not CHINA_ANY.search(seg) and not risky):
-            names = ", ".join(d.title() for d in sorted(dests))
-            out["out_of_scope"].append({**base, "commodity": "Soybeans", "dest": names, "mt": mt,
-                                        "reason": f"Out of scope (soybeans to {names}, not China/unknown)"})
-            continue
-        reasons = []
-        if not commodity:
-            reasons.append("commodity not recognised")
-        if risky:
-            reasons.append("switch / cancel / reduction wording in the release")
-        if dests not in ({"china"}, {"unknown"}):
-            reasons.append(f"destination not exactly China or unknown ({', '.join(sorted(dests)) or 'none found'})")
-        if mys != {MY_TARGET}:
-            reasons.append(f"marketing year {', '.join(sorted(mys)) or 'not stated'} (need {MY_TARGET} only)")
-        if reasons:
-            out["review"].append({**base, "mt": mt, "dest": None, "reason": "; ".join(reasons)})
-        else:
-            out["clean"].append({**base, "mt": mt, "dest": next(iter(dests)),
-                                 "reason": "" if esr else "no ESR number found \u2014 enter it on approval"})
+        headline = int(amt.group(1).replace(",", ""))
+        # one part per marketing year when the clause allocates the whole headline; else the sale stays whole and its
+        # two years make it a review item
+        parts = _split_clause(clause, headline) if clause else None
+        for mt, part_my in (parts or [(headline, None)]):
+            _judge(out, seg, clause, mt, part_my, risky, esr, received_iso)
     return out
+
+
+def _judge(out, seg, clause, mt, part_my, risky, esr, received_iso):
+    """Classify one item (or one marketing-year part of a split sale) into clean / review / out_of_scope."""
+    com_m = COMMODITY_RE.search(seg)
+    commodity = com_m.group(1).strip().lower() if com_m else ""
+    if SOY_RE.search(seg) and not NONSOY_SOY_RE.search(commodity):
+        commodity = "soybeans"  # "soybeans previously reported ..." must not slip out of scope
+    elif commodity and not NONSOY_RE.search(commodity):
+        commodity = ""  # unfamiliar commodity text -> review, never silently dropped
+    dests = {_norm_dest(d) for d in DEST_RE.findall(seg) if not d.startswith(IGNORE_DEST)}
+    mys = {part_my} if part_my else {f"{a}/{b}" for a, b in MY_RE.findall(seg + " " + clause)}
+    base = {"date": received_iso[:10], "esr": esr, "excerpt": f"{seg} {clause}".strip()[:400]}
+    if commodity and commodity != "soybeans":
+        out["out_of_scope"].append({**base, "commodity": commodity.title(), "reason": "Out of scope (not soybeans)",
+                                    "dest": ", ".join(d.title() for d in sorted(dests)) or "\u2014", "mt": mt})
+        return
+    # Soybeans to a clearly different named country (e.g. Spain): logged as out of scope, never queued.
+    # Anything that could be China (any 'china'/'prc' spelling), unknown destinations, or switch/cancel wording stays review.
+    if (commodity == "soybeans" and dests and not (dests & {"china", "unknown"})
+            and not CHINA_ANY.search(seg) and not risky):
+        names = ", ".join(d.title() for d in sorted(dests))
+        out["out_of_scope"].append({**base, "commodity": "Soybeans", "dest": names, "mt": mt,
+                                    "reason": f"Out of scope (soybeans to {names}, not China/unknown)"})
+        return
+    reasons = []
+    if not commodity:
+        reasons.append("commodity not recognised")
+    if risky:
+        reasons.append("switch / cancel / reduction wording in the release")
+    if dests not in ({"china"}, {"unknown"}):
+        reasons.append(f"destination not exactly China or unknown ({', '.join(sorted(dests)) or 'none found'})")
+    if mys != {MY_TARGET}:
+        reasons.append(f"marketing year {', '.join(sorted(mys)) or 'not stated'} (need {MY_TARGET} only)")
+    if reasons:
+        out["review"].append({**base, "mt": mt, "dest": None, "reason": "; ".join(reasons)})
+    else:
+        out["clean"].append({**base, "mt": mt, "dest": next(iter(dests)),
+                             "reason": "" if esr else "no ESR number found \u2014 enter it on approval"})
 
 
 # ---- mailbox --------------------------------------------------------------

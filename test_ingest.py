@@ -184,3 +184,24 @@ def test_out_of_scope_rows_carry_their_own_reason():
     n = ig.queue_result(data, m)
     assert n["out_of_scope"] == 1 and not data.get("pending")
     assert data["excluded"][-1]["reason"].startswith("Out of scope (soybeans to Spain")
+
+
+def test_of_the_total_soy_split_counts_only_the_target_year_and_reviews_the_rest():
+    r = P("Private exporters reported export sales of 600,000 metric tons of soybeans for delivery to China. Of the total, "
+          "400,000 metric tons is for delivery during the 2026/2027 marketing year and the balance is for delivery during the "
+          "2027/2028 marketing year.")
+    assert [(c["mt"], c["dest"]) for c in r["clean"]] == [(400000, "china")]
+    assert [(x["mt"], "2027/28" in x["reason"]) for x in r["review"]] == [(200000, True)]
+    assert not r["out_of_scope"]
+
+
+def test_of_the_total_destination_is_not_garbled_for_corn():
+    r = P("Export sales of 1,729,740 metric tons of corn for delivery to Mexico. Of the total, 800,000 metric tons is for delivery "
+          "during the 2026/2027 marketing year and the balance is for delivery during the 2027/2028 marketing year.")
+    assert [(x["mt"], x["dest"]) for x in r["out_of_scope"]] == [(800000, "Mexico"), (929740, "Mexico")]
+
+
+def test_of_the_total_that_does_not_add_up_goes_to_review_whole():
+    r = P("Export sales of 1,000,000 metric tons of soybeans for delivery to China. Of the total, 300,000 metric tons is for "
+          "delivery during the 2026/2027 marketing year and 300,000 metric tons is for delivery during the 2027/2028 marketing year.")
+    assert not r["clean"] and [x["mt"] for x in r["review"]] == [1000000]

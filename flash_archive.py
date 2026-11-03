@@ -82,36 +82,6 @@ def _destinations(seg):
     return dests
 
 
-# "Of the total, 800,000 metric tons is for delivery during the 2026/2027 marketing year and the balance is for ... 2027/2028
-# marketing year." Splits ONE headline sale across marketing years; its amounts are parts of the headline, not new sales.
-OF_TOTAL_RE = re.compile(r"Of\s+the\s+total\b[^.]*?marketing\s+year(?:\s+and\b[^.]*?marketing\s+year)?\.?", re.I)
-_BALANCE_RE = re.compile(r"\b(?:the\s+)?(?:balance|remainder|rest)\b", re.I)
-
-
-def _split_clause(clause, total):
-    """[(mt, marketing_year)] when the clause allocates the whole headline total across marketing years, else None.
-    Each marketing year takes the nearest amount (or 'the balance') in front of it."""
-    toks = [(m.start(), "amt", int(m.group(1).replace(",", ""))) for m in ig.AMOUNT_RE.finditer(clause)]
-    toks += [(m.start(), "bal", None) for m in _BALANCE_RE.finditer(clause)]
-    toks += [(m.start(), "my", f"{m.group(1)}/{m.group(2)}") for m in ig.MY_RE.finditer(clause)]
-    pairs, last = [], None
-    for _, kind, val in sorted(toks):
-        if kind in ("amt", "bal"):
-            last = (kind, val)
-        elif last is None:
-            return None
-        else:
-            pairs.append((last, val))
-            last = None
-    if not pairs:
-        return None
-    explicit = sum(v for (k, v), _ in pairs if k == "amt")
-    balances = [i for i, ((k, _), _) in enumerate(pairs) if k == "bal"]
-    if len(balances) > 1 or explicit > total or (not balances and explicit != total):
-        return None
-    return [(total - explicit if k == "bal" else v, my) for (k, v), my in pairs]
-
-
 def parse_items(text, received_iso, subject=""):
     """Every sale item in one release -> list of row dicts (no filtering by commodity/destination/year).
     A headline sale followed by an 'Of the total ...' marketing-year split becomes one row per marketing year (flag
@@ -125,7 +95,7 @@ def parse_items(text, received_iso, subject=""):
     def _park(m):                      # lift the clause out so its amounts are not read as sales of their own
         clauses.append(m.group(0))
         return f" \x00{len(clauses) - 1}\x00 "
-    core = OF_TOTAL_RE.sub(_park, core)
+    core = ig.OF_TOTAL_RE.sub(_park, core)
     starts = [m.start() for m in ig.AMOUNT_RE.finditer(core)]
     rows, seen = [], set()
     for i, s0 in enumerate(starts):
@@ -142,7 +112,7 @@ def parse_items(text, received_iso, subject=""):
         base = {"sale_date": received_iso[:10], "esr": esr, "commodity": _commodity(seg),
                 "destination": " / ".join(_destinations(seg)), "subject": subject, "received": received_iso}
         flags = [n for n, rx in FLAG_RES if rx.search(seg + " " + clause)]
-        split = _split_clause(clause, mt) if clause else None
+        split = ig._split_clause(clause, mt) if clause else None
         if split:
             for part_mt, part_my in split:
                 rows.append({**base, "mt": part_mt, "marketing_year": part_my, "flags": ",".join(flags + ["split_my"]),
