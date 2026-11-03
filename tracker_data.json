@@ -12,12 +12,6 @@
   "china_flash": [
     {
       "date": "2026-11-02",
-      "esr": "099-26",
-      "mt": 136000,
-      "note": ""
-    },
-    {
-      "date": "2026-11-02",
       "esr": "099",
       "mt": 136000,
       "note": "(from inbox)"
@@ -463,6 +457,15 @@
       "unknown": 3732550,
       "intel": 480000,
       "grand": 19558737
+    },
+    {
+      "ts": "2026-11-03T08:56-06:00",
+      "action": "Removed from China confirmed",
+      "detail": "Nov 2 · ESR-099-26 · 136,000 MT · Not China (another destination)",
+      "confirmed": 15210187,
+      "unknown": 3732550,
+      "intel": 480000,
+      "grand": 19422737
     }
   ],
   "ingest_seen": [
@@ -478,5 +481,13 @@
     "<010001a19c91c015-9ec18424-0bd5-4b2a-814c-a0fef8101a38-000000@us-east-1.messagingfabric.com>",
     "<010001a1a1b7435f-6e398d5d-5b8a-456a-ac76-f2abf7470753-000000@us-east-1.messagingfabric.com>"
   ],
-  "pending": []
+  "pending": [],
+  "flash_removed": [
+    {
+      "date": "2026-11-02",
+      "esr": "099-26",
+      "mt": 136000,
+      "note": "Not China (another destination)"
+    }
+  ]
 }
