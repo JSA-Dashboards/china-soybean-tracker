@@ -75,35 +75,82 @@ def _destinations(seg):
     for d in DEST_ANY_RE.findall(seg):
         if d.startswith(ig.IGNORE_DEST):
             continue
-        d = "Unknown Destinations" if d.lower().startswith("unknown") else d.strip()
-        if d not in dests:
+        d = re.split(r"\.\s", d)[0].rstrip(".").strip()      # "Mexico. Of the total ..." -> "Mexico"
+        d = "Unknown Destinations" if d.lower().startswith("unknown") else d
+        if d and d not in dests:
             dests.append(d)
     return dests
 
 
+# "Of the total, 800,000 metric tons is for delivery during the 2026/2027 marketing year and the balance is for ... 2027/2028
+# marketing year." Splits ONE headline sale across marketing years; its amounts are parts of the headline, not new sales.
+OF_TOTAL_RE = re.compile(r"Of\s+the\s+total\b[^.]*?marketing\s+year(?:\s+and\b[^.]*?marketing\s+year)?\.?", re.I)
+_BALANCE_RE = re.compile(r"\b(?:the\s+)?(?:balance|remainder|rest)\b", re.I)
+
+
+def _split_clause(clause, total):
+    """[(mt, marketing_year)] when the clause allocates the whole headline total across marketing years, else None.
+    Each marketing year takes the nearest amount (or 'the balance') in front of it."""
+    toks = [(m.start(), "amt", int(m.group(1).replace(",", ""))) for m in ig.AMOUNT_RE.finditer(clause)]
+    toks += [(m.start(), "bal", None) for m in _BALANCE_RE.finditer(clause)]
+    toks += [(m.start(), "my", f"{m.group(1)}/{m.group(2)}") for m in ig.MY_RE.finditer(clause)]
+    pairs, last = [], None
+    for _, kind, val in sorted(toks):
+        if kind in ("amt", "bal"):
+            last = (kind, val)
+        elif last is None:
+            return None
+        else:
+            pairs.append((last, val))
+            last = None
+    if not pairs:
+        return None
+    explicit = sum(v for (k, v), _ in pairs if k == "amt")
+    balances = [i for i, ((k, _), _) in enumerate(pairs) if k == "bal"]
+    if len(balances) > 1 or explicit > total or (not balances and explicit != total):
+        return None
+    return [(total - explicit if k == "bal" else v, my) for (k, v), my in pairs]
+
+
 def parse_items(text, received_iso, subject=""):
-    """Every sale item in one release -> list of row dicts (no filtering by commodity/destination/year)."""
+    """Every sale item in one release -> list of row dicts (no filtering by commodity/destination/year).
+    A headline sale followed by an 'Of the total ...' marketing-year split becomes one row per marketing year (flag
+    split_my) that adds up to the headline; if the split cannot be read the headline stays as one row, flagged
+    split_my_unparsed, with the year left blank."""
     esr_m = ig.ESR_RE.search(subject + " " + text)
     esr = esr_m.group(1).zfill(3) if esr_m else ""
     core = ig._core(text)
+    clauses = []
+
+    def _park(m):                      # lift the clause out so its amounts are not read as sales of their own
+        clauses.append(m.group(0))
+        return f" \x00{len(clauses) - 1}\x00 "
+    core = OF_TOTAL_RE.sub(_park, core)
     starts = [m.start() for m in ig.AMOUNT_RE.finditer(core)]
     rows, seen = [], set()
     for i, s0 in enumerate(starts):
-        seg = core[s0: starts[i + 1] if i + 1 < len(starts) else len(core)]
+        full = core[s0: starts[i + 1] if i + 1 < len(starts) else len(core)]
+        parked = re.search(r"\x00(\d+)\x00", full)
+        clause = clauses[int(parked.group(1))] if parked else ""
+        seg = re.sub(r"\x00\d+\x00", "", full)
         end = re.search(r"marketing\s+year\.?", seg, re.I)
-        seg = (seg[:end.end()] if end else seg[:300]).strip()
+        seg = re.sub(r"\s+", " ", seg[:end.end()] if end else seg[:300]).strip()
         if seg in seen:  # the HTML preview repeats the body
             continue
         seen.add(seg)
         mt = int(ig.AMOUNT_RE.match(seg).group(1).replace(",", ""))
-        my = _marketing_years(seg)
-        dests = _destinations(seg)
-        rows.append({
-            "sale_date": received_iso[:10], "esr": esr, "commodity": _commodity(seg), "mt": mt,
-            "destination": " / ".join(dests), "marketing_year": " & ".join(my),
-            "flags": ",".join(n for n, rx in FLAG_RES if rx.search(seg)),
-            "excerpt": seg[:600], "subject": subject, "received": received_iso,
-        })
+        base = {"sale_date": received_iso[:10], "esr": esr, "commodity": _commodity(seg),
+                "destination": " / ".join(_destinations(seg)), "subject": subject, "received": received_iso}
+        flags = [n for n, rx in FLAG_RES if rx.search(seg + " " + clause)]
+        split = _split_clause(clause, mt) if clause else None
+        if split:
+            for part_mt, part_my in split:
+                rows.append({**base, "mt": part_mt, "marketing_year": part_my, "flags": ",".join(flags + ["split_my"]),
+                             "excerpt": f"{seg} {clause}"[:600]})
+        else:
+            rows.append({**base, "mt": mt, "marketing_year": " & ".join(_marketing_years(seg + " " + clause)),
+                         "flags": ",".join(flags + (["split_my_unparsed"] if clause else [])),
+                         "excerpt": f"{seg} {clause}".strip()[:600]})
     for idx, r in enumerate(rows):
         r["item_idx"] = idx
     return rows
@@ -204,6 +251,14 @@ def load(conn, rows):
         cur.execute("CREATE OR REPLACE TEMPORARY TABLE _FLASH_RAW (V VARIANT)")
         cur.execute(f"PUT 'file://{Path(path).as_posix()}' @_FLASH_STAGE AUTO_COMPRESS=TRUE OVERWRITE=TRUE")
         cur.execute("COPY INTO _FLASH_RAW FROM @_FLASH_STAGE PURGE = TRUE")
+        # A re-parsed email can yield fewer items than before (the Nov 2 'Of the total' fix): drop that message's rows
+        # that the new parse no longer produces, so the MERGE below never leaves stale items behind.
+        cur.execute(f"""
+            DELETE FROM {TABLE} t
+            WHERE COALESCE(t.SOURCE, 'email') = 'email'
+              AND t.MESSAGE_ID IN (SELECT DISTINCT V:message_id::VARCHAR FROM _FLASH_RAW)
+              AND NOT EXISTS (SELECT 1 FROM _FLASH_RAW r
+                              WHERE r.V:message_id::VARCHAR = t.MESSAGE_ID AND r.V:item_idx::NUMBER = t.ITEM_IDX)""")
         cur.execute(f"""
             MERGE INTO {TABLE} t USING (
                 SELECT V:message_id::VARCHAR AS MESSAGE_ID, V:item_idx::NUMBER AS ITEM_IDX,

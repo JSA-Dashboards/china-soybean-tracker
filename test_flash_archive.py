@@ -83,3 +83,36 @@ def test_marketing_year_start_months():
     assert fa.marketing_year_for("Soybeans", dt.date(2026, 9, 1)) == "2026/27"
     assert fa.marketing_year_for("Wheat", dt.date(2026, 6, 1)) == "2026/27"
     assert fa.marketing_year_for("Soybean Oil", dt.date(2024, 9, 27)) == "2023/24"
+
+
+def _show(rows):
+    return [(r["commodity"], r["mt"], r["destination"], r["marketing_year"], r["flags"]) for r in rows]
+
+
+def test_of_the_total_with_balance_splits_the_headline_by_marketing_year():
+    rows = P("Private exporters reported export sales of 1,729,740 metric tons of corn for delivery to Mexico. Of the total, "
+             "800,000 metric tons is for delivery during the 2026/2027 marketing year and the balance is for delivery during the "
+             "2027/2028 marketing year.")
+    assert _show(rows) == [("Corn", 800000, "Mexico", "2026/27", "split_my"), ("Corn", 929740, "Mexico", "2027/28", "split_my")]
+    assert sum(r["mt"] for r in rows) == 1729740
+
+
+def test_of_the_total_with_two_amounts():
+    rows = P("Export sales of 1,729,740 metric tons of corn for delivery to Mexico. Of the total, 800,000 metric tons is for "
+             "delivery during the 2026/2027 marketing year and 929,740 metric tons is for delivery during the 2027/2028 marketing year. "
+             "Export sales of 136,000 metric tons of soybeans for delivery to China during the 2026/2027 marketing year.")
+    assert [(r["commodity"], r["mt"], r["marketing_year"]) for r in rows] == [
+        ("Corn", 800000, "2026/27"), ("Corn", 929740, "2027/28"), ("Soybeans", 136000, "2026/27")]
+
+
+def test_of_the_total_that_does_not_add_up_stays_one_flagged_row():
+    rows = P("Export sales of 1,000,000 metric tons of corn for delivery to Mexico. Of the total, 300,000 metric tons is for "
+             "delivery during the 2026/2027 marketing year and 300,000 metric tons is for delivery during the 2027/2028 marketing year.")
+    assert len(rows) == 1 and rows[0]["mt"] == 1000000 and "split_my_unparsed" in rows[0]["flags"]
+    assert rows[0]["marketing_year"] == "2026/27 & 2027/28"
+
+
+def test_destination_never_carries_the_next_sentence():
+    rows = P("Export sales of 315,000 metric tons of corn for delivery to Mexico. Export sales of 136,000 metric tons of corn "
+             "for delivery to South Korea during the 2026/2027 marketing year.")
+    assert [r["destination"] for r in rows] == ["Mexico", "South Korea"]
