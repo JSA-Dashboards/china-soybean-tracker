@@ -498,5 +498,15 @@
       "mt": 136000,
       "note": "Not China (another destination)"
     }
-  ]
+  ],
+  "pending_weekly": {
+    "label": "Wk 9 (Oct 29)",
+    "cutoff": "2026-10-29",
+    "outstanding": 8378000,
+    "exports": 7570067,
+    "total_commitment": 15948067,
+    "unknown_net_sales": -210850,
+    "unknown_outstanding": 5603500,
+    "fetched": "2026-11-05T07:45-06:00"
+  }
 }
