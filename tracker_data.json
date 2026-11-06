@@ -2,11 +2,11 @@
   "as_of": "2026-11-06",
   "marketing_year": "2026/27",
   "baseline": {
-    "label": "Wk 8 (Oct 22)",
-    "cutoff": "2026-10-22",
-    "outstanding_sales": 9096000,
-    "accumulated_exports": 5978187,
-    "source": "USDA ESR Query System, Wk 8 (Oct 22)",
+    "label": "Wk 9 (Oct 29)",
+    "cutoff": "2026-10-29",
+    "outstanding_sales": 8378000,
+    "accumulated_exports": 7570067,
+    "source": "USDA ESR Query System, Wk 9 (Oct 29)",
     "note": "Note: 2–3 boats may be Aug/Sep straddles (25/26 reg., 26/27 shipment)."
   },
   "china_flash": [
@@ -497,6 +497,15 @@
       "unknown": 3732550,
       "intel": 480000,
       "grand": 19558737
+    },
+    {
+      "ts": "2026-11-06T11:29-06:00",
+      "action": "New weekly ESR baseline",
+      "detail": "Wk 9 (Oct 29) · outstanding 8,378,000 + exports 7,570,067 · 0 flash row(s) absorbed",
+      "confirmed": 16220067,
+      "unknown": 3732550,
+      "intel": 480000,
+      "grand": 20432617
     }
   ],
   "ingest_seen": [
@@ -523,15 +532,5 @@
       "mt": 136000,
       "note": "Not China (another destination)"
     }
-  ],
-  "pending_weekly": {
-    "label": "Wk 9 (Oct 29)",
-    "cutoff": "2026-10-29",
-    "outstanding": 8378000,
-    "exports": 7570067,
-    "total_commitment": 15948067,
-    "unknown_net_sales": -210850,
-    "unknown_outstanding": 5603500,
-    "fetched": "2026-11-05T07:45-06:00"
-  }
+  ]
 }
