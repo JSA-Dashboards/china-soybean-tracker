@@ -167,7 +167,7 @@
   ],
   "intel": {
     "week": "Wk of Nov 2",
-    "cargoes": 8,
+    "cargoes": 6,
     "mt_per_cargo": 60000
   },
   "sources": "USDA FAS Newsroom (fas.usda.gov/newsroom); FAS ESR 043-26 (Jun 18), 051-26 (Jul 13), 052-26 (Jul 17), 053-26 (Jul 20), 054-26 (Jul 23), 055-26 (Jul 27), 056-26 (Jul 30), 057-26 (Jul 31), 060-26 (Aug 4), 069-26 (Aug 18), 070-26 (Aug 20), 071-26 (Aug 21), 072-26 (Aug 25), 073-26 (Aug 26), 074-26 (Aug 28), 076-26 (Sep 1), 077-26 (Sep 2), 078-26 (Sep 3), 079-26 (Sep 4), 080-26 (Sep 8), 081-26 (Sep 10), 083-26 (Sep 18), 085-26 (Sep 24), 086-26 (Sep 30), 088-26 (Oct 5), 089-26 (Oct 14), 090-26 (Oct 15), 091-26 (Oct 16), 092-26 (Oct 19); USDA ESR Query System Wk 52 (Aug 27), Wk 1 (Sep 3), Wk 2 (Sep 10), Wk 3 (Sep 17), Wk 4 (Sep 24), Wk 5 (Oct 1); White House Fact Sheet Nov. 1, 2025. Unknown destination sales tracked separately until rebooked by USDA. Unconfirmed estimates are trade intelligence only. Corn and soybean-meal sales outside the soybean/China scope are excluded. 26/27 MY opened Sep 1, 2026.",
@@ -506,6 +506,24 @@
       "unknown": 3732550,
       "intel": 480000,
       "grand": 20432617
+    },
+    {
+      "ts": "2026-11-06T11:30-06:00",
+      "action": "New weekly ESR baseline",
+      "detail": "Wk 9 (Oct 29) · outstanding 8,378,000 + exports 7,570,067 · 0 flash row(s) absorbed",
+      "confirmed": 16220067,
+      "unknown": 3732550,
+      "intel": 480000,
+      "grand": 20432617
+    },
+    {
+      "ts": "2026-11-06T11:30-06:00",
+      "action": "Trade intel cleared",
+      "detail": "2 cargo(es) · confirmed in Wk 9 (Oct 29) weekly report",
+      "confirmed": 16220067,
+      "unknown": 3732550,
+      "intel": 360000,
+      "grand": 20312617
     }
   ],
   "ingest_seen": [
