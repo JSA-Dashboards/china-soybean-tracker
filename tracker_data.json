@@ -251,6 +251,22 @@
       "destination": "Mexico",
       "mt": 110000,
       "reason": "Out of scope (not soybeans)"
+    },
+    {
+      "date": "2026-11-10",
+      "esr": "104",
+      "commodity": "Corn Received",
+      "destination": "Mexico",
+      "mt": 312700,
+      "reason": "Out of scope (not soybeans)"
+    },
+    {
+      "date": "2026-11-10",
+      "esr": "104",
+      "commodity": "Soybeans",
+      "destination": "Mexico",
+      "mt": 150000,
+      "reason": "Out of scope (soybeans to Mexico, not China/unknown)"
     }
   ],
   "log": [
@@ -549,7 +565,8 @@
     "<010001a1a6dd389b-e4267e57-d180-4212-8ff6-d01fa449b818-000000@us-east-1.messagingfabric.com>",
     "<010001a1abe8ce2c-9acdec9b-eb13-46b7-80a4-9886d756d6ca-000000@us-east-1.messagingfabric.com>",
     "<010001a1b12a40bf-2459c7bf-ba88-49f8-a2fe-39b08b3185b0-000000@us-east-1.messagingfabric.com>",
-    "<010001a1c09d6210-003ca83a-fb4e-4bc2-9f48-5dd407160bab-000000@us-east-1.messagingfabric.com>"
+    "<010001a1c09d6210-003ca83a-fb4e-4bc2-9f48-5dd407160bab-000000@us-east-1.messagingfabric.com>",
+    "<010001a1c5c4674c-9c41a696-325d-48e8-b2aa-7d59e7114961-000000@us-east-1.messagingfabric.com>"
   ],
   "pending": [],
   "flash_removed": [
