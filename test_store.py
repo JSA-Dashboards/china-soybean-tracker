@@ -79,3 +79,13 @@ def test_public_data_falls_back_to_raw_when_the_api_fails(monkeypatch):
     monkeypatch.setattr(store, "_api_read", boom)
     monkeypatch.setattr(store.requests, "get", lambda *a, **k: R())
     assert store.load_public() == {"via": "raw"}
+
+
+def test_update_skips_the_commit_when_nothing_changed(monkeypatch):
+    saved = []
+    monkeypatch.setattr(store, "load_fresh", lambda: ({"a": 1, "b": [1, 2]}, "sha"))
+    monkeypatch.setattr(store, "save", lambda data, sha, msg: saved.append(msg))
+    store.update(lambda d: None, "no-op")
+    assert saved == []
+    store.update(lambda d: d.__setitem__("a", 2), "real change")
+    assert saved == ["real change"]

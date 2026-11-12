@@ -147,7 +147,10 @@ def update(fn, message, retries=3):
     concurrent write. fn may raise ValueError to abort without saving."""
     for attempt in range(retries):
         data, sha = load_fresh()
+        before = json.dumps(data, sort_keys=True)
         fn(data)
+        if json.dumps(data, sort_keys=True) == before:
+            return data  # nothing changed: no commit (the weekly poll runs every 10 min on release days)
         try:
             save(data, sha, message)
             return data
