@@ -563,6 +563,15 @@
       "unknown": 3732550,
       "intel": 360000,
       "grand": 20448617
+    },
+    {
+      "ts": "2026-11-12T08:14-06:00",
+      "action": "New weekly ESR baseline",
+      "detail": "Wk 9 (Oct 29) · outstanding 8,378,000 + exports 7,570,067 · 0 flash row(s) absorbed",
+      "confirmed": 16356067,
+      "unknown": 3732550,
+      "intel": 360000,
+      "grand": 20448617
     }
   ],
   "ingest_seen": [
