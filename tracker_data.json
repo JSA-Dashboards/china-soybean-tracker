@@ -1,5 +1,5 @@
 {
-  "as_of": "2026-11-12",
+  "as_of": "2026-11-13",
   "marketing_year": "2026/27",
   "baseline": {
     "label": "Wk 9 (Oct 29)",
@@ -26,6 +26,12 @@
       "date": "2026-11-12",
       "esr": "105",
       "mt": 136000,
+      "note": "(from inbox)"
+    },
+    {
+      "date": "2026-11-13",
+      "esr": "106",
+      "mt": 134000,
       "note": "(from inbox)"
     }
   ],
@@ -596,6 +602,15 @@
       "unknown": 3732550,
       "intel": 360000,
       "grand": 20448617
+    },
+    {
+      "ts": "2026-11-13T09:14-06:00",
+      "action": "Flash sale → China confirmed",
+      "detail": "Nov 13 · ESR-106 · 134,000 MT (from inbox)",
+      "confirmed": 16490067,
+      "unknown": 3732550,
+      "intel": 360000,
+      "grand": 20582617
     }
   ],
   "ingest_seen": [
@@ -620,19 +635,6 @@
     "<010001a1d536da7c-07361058-2f07-4c06-99ec-3bd46dbd2c6a-000000@us-east-1.messagingfabric.com>"
   ],
   "pending": [
-    {
-      "date": "2026-11-13",
-      "esr": "106",
-      "excerpt": "134,000 metric tons of soybeans for delivery to China during the 2026/2027 marketing year",
-      "mt": 134000,
-      "dest": "china",
-      "reason": "",
-      "kind": "flash",
-      "source": "email:<010001a1d536da7c-07361058-2f07-4c06-99ec-3bd46dbd2c6a-000000@us-east-1.messagingfabric.com>",
-      "subject": "Export Sales to China, Mexico, Vietnam, and Unknown Destinations",
-      "received": "2026-11-13T08:02-06:00",
-      "id": "p-2e870f9317"
-    },
     {
       "date": "2026-11-13",
       "esr": "106",
