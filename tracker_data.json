@@ -611,6 +611,15 @@
       "unknown": 3732550,
       "intel": 360000,
       "grand": 20582617
+    },
+    {
+      "ts": "2026-11-13T09:14-06:00",
+      "action": "Inbox item dismissed",
+      "detail": "2026-11-13 · 100000 MT · dismissed by admin",
+      "confirmed": 16490067,
+      "unknown": 3732550,
+      "intel": 360000,
+      "grand": 20582617
     }
   ],
   "ingest_seen": [
@@ -634,21 +643,7 @@
     "<010001a1d51ad903-fc55dcb5-fc9c-457b-99b2-e7000359104a-000000@us-east-1.messagingfabric.com>",
     "<010001a1d536da7c-07361058-2f07-4c06-99ec-3bd46dbd2c6a-000000@us-east-1.messagingfabric.com>"
   ],
-  "pending": [
-    {
-      "date": "2026-11-13",
-      "esr": "106",
-      "excerpt": "100,000 metric tons of soybeans for delivery to unknown destinations during the 2026/2027 marketing year",
-      "mt": 100000,
-      "dest": "unknown",
-      "reason": "",
-      "kind": "flash",
-      "source": "email:<010001a1d536da7c-07361058-2f07-4c06-99ec-3bd46dbd2c6a-000000@us-east-1.messagingfabric.com>",
-      "subject": "Export Sales to China, Mexico, Vietnam, and Unknown Destinations",
-      "received": "2026-11-13T08:02-06:00",
-      "id": "p-5dd6435a1a"
-    }
-  ],
+  "pending": [],
   "flash_removed": [
     {
       "date": "2026-11-02",
